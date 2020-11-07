@@ -1,3 +1,6 @@
 # dataset
 /data
 
+# vim files
+.*.swp
+
