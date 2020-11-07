@@ -4,6 +4,6 @@ Subject: Self-Driving Cars (crossroad detection)
 
 TODO:
 *build a net that detects corssroads
-*build a net that finds different paths in crossroads
+*build a net that finds different paths in crossroads (maybe use a SLAM library for that or build my own pathfinder)
 *select a path based on GPS data
 
