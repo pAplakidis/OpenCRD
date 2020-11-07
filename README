@@ -1,0 +1,9 @@
+My Thesis for my computer science and telecommunications degree
+
+Subject: Self-Driving Cars (crossroad detection)
+
+TODO:
+*build a net that detects corssroads
+*build a net that finds different paths in crossroads
+*select a path based on GPS data
+
