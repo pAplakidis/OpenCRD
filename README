@@ -1,8 +1,9 @@
 My Thesis for my computer science and telecommunications degree
 
-Subject: Self-Driving Cars (crossroad detection)
+Subject: Monocular Crossroad Detection (Self-Driving Cars)
 
-TODO:
+
+GOAL -> Use single camera and solve the following tasks:
 *build a net that detects corssroads
 *build a net that finds different paths in crossroads (maybe use a SLAM library for that or build my own pathfinder)
 *select a path based on GPS data

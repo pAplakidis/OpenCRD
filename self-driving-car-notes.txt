@@ -1,0 +1,39 @@
+Self-Driving Car Tasks:
+* Localization and Mapping (where am I?)
+* Scene Understanding (where is everyone else?)
+* Movement Planning (how do I get from A to B?)
+* Driver State (what's the driver up to?)
+
+
+SLAM and autonomy (where am I?):
+
+[ https://pythonrobotics.readthedocs.io/en/latest/modules/slam.html ]
+[ https://github.com/DanielsKraus/SLAM-python ]
+[ https://github.com/geohot/twitchslam ]
+
+- End-to-End Visual Odometry:
+left video sequence     right video sequence
+conbolution             convolution
+elemtwise product of 2 convolutions
+convolution + pooling
+flatten
+dense/normal/fully connected layer
+softmax
+output: velocity direction
+
+- in general:
+stereo camera
+5 frame sub-sequence
+CNN(velocity)   CNN(direction)
+local velocity  local change in direction
+path
+
+Object Detection (what is around me?):
+
+- deep learning -> recognition, classification, detection
+- scene segmentation [ https://github.com/tkuanlun350/Tensorflow-SegNet ]
+
+Movement Planning (where do I go?):
+
+- deep reinforcement learning [ https://github.com/siemanko/tensorflow-deepq ]
+
