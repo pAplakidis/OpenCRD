@@ -10,4 +10,5 @@ GOAL -> Use single camera and solve the following tasks:
 
 NOTES:
 - always full stop in crossroads for safety, no matter the sign (might be good to detect it though)
+- maybe add small side front facing cameras and SLAM based on all three cameras for crossroad navigation
 
