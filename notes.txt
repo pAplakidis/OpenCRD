@@ -1,0 +1,19 @@
+Lessons from Andrej Karpathy's talk in Tesla Autonomy Day [ https://www.youtube.com/watch?v=Ucp0TTmvqOE&ab_channel=Tesla ]
+
+Neural Network Essentials for DATA:
+- Large dataset
+- Varied dataset (different scenarios)
+- Real dataset (no simulations)
+solution: fleet
+
+No more than 2-3 Conv Layers and 1-2 fully connected hidden layers are needed
+
+Steering and Path Prediction:
+
+Depth Perception from Vision:
+- No Lidar, it is a vision problem
+- Need to not only know whether there is a crossroad or not, but also how far it is
+- SLAM + RADAR
+- sensor data -> neural network -> surrounding cars in cuboids (size, location, direction)
+- self-supervision
+

@@ -4,7 +4,7 @@ Subject: Monocular Crossroad Detection (Self-Driving Cars)
 
 
 GOAL -> Use single camera and solve the following tasks:
-*build a net that detects corssroads
+*build a net that detects corssroads (+ how far they are?, might not be possible without SLAM, so may not do that)
 *build a net that finds different paths in crossroads (maybe use a SLAM library for that or build my own pathfinder)(not something fancy, just need to draw path of turn, then it's back to basic cruising)
 *select a path based on GPS data (just the command: left, right, straight)
 
@@ -15,4 +15,5 @@ NOTES:
 
 IMPORTANT:
 - we might not need more than one camera or SLAM, since we only need to find the path/line for each crossroad choice/turn, just train a model like the one example from comma.ai (the one they used for bloomberg)
+- need lots of varied datasets (need to label them as well, <crossroad/no-crossroad>, <path car followed>)
 
