@@ -17,3 +17,5 @@ Depth Perception from Vision:
 - sensor data -> neural network -> surrounding cars in cuboids (size, location, direction)
 - self-supervision
 
+FOR PATH PLANNING CHECK THIS [ https://towardsdatascience.com/can-self-driving-car-think-6c9e8d939d60 ]
+
