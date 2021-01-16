@@ -1,6 +1,4 @@
-# dataset
 /data
-
-# vim files
 .*.swp
+.ipynb_checkpoints/
 
