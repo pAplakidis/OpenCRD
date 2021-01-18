@@ -17,4 +17,5 @@ NOTES:
 IMPORTANT:
 - we might not need more than one camera or SLAM, since we only need to find the path/line for each crossroad choice/turn, just train a model like the one example from comma.ai (the one they used for bloomberg)
 - need lots of varied datasets (need to label them as well, <crossroad/no-crossroad>, <path car followed>)
+- DIFFERENT TYPES OF CROSSROADS (net's outputs cannot be binary)
 

@@ -23,7 +23,8 @@ class Net(nn.Module):
     # Convolutional layers
     self.fc1 = nn.Linear(16 * 5 * 5, 120)
     self.fc2 = nn.Linear(120, 84)
-    self.fc3 = nn.Linear(84, 1)   # output is binary (is or is not crossroad)
+    self.fc3 = nn.Linear(84, 5)
+    # types of crossroads: no_crossroad, regular cross, T shaped, T (no left), T (no right)
 
   def forward(self, x):
     x = self.pool(F.relu(self.conv1(x)))
