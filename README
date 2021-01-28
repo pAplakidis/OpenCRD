@@ -20,3 +20,12 @@ IMPORTANT:
 - DIFFERENT TYPES OF CROSSROADS (net's outputs cannot be binary)
 - get argmax(outputs) to get the estimated crossroad type (need a dictionary as well)
 
+TODO:
+- make a script using cv2 that lets me label frames, labels go to a txt file with the same name as the video, each line represents frame label (non crossroad videos should be pretty straightforward)
+- make a training script that goes through all videos and their text-files (labels) and puts the data together for training
+- design and train the conv-neural-net (repeat until accuracy is correct) (don't forget to make a test dataset)
+
+- repeat the process for paths (need to convert lines from visual (using drawing or something) to pitch-yaw coordinates like in the new comma.ai calibration challenge)
+
+- find a good GPS API and just query it for directions
+
