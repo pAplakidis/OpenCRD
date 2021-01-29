@@ -1,11 +1,11 @@
 My Thesis for my computer science and telecommunications degree
 
-Subject: Monocular Crossroad Detection (Self-Driving Cars)
+Subject: Monocular Crossroad Detection and Path Prediction (Self-Driving Cars)
 
 
 GOAL -> Use single camera and solve the following tasks:
 *build a net that detects corssroads (+ how far they are?, might not be possible without SLAM, so may not do that)
-*build a net that finds different paths in crossroads (maybe use a SLAM library for that or build my own pathfinder)(not something fancy, just need to draw path of turn, then it's back to basic cruising)
+*build a net that finds different paths in crossroads (maybe use a SLAM library for that or build my own pathfinder)(not something fancy, just need to draw path of turn, then it's back to basic cruising) (pitch + yaw for path data)
 *select a path based on GPS data (just the command: left, right, straight)
 
 NOTES:
@@ -15,7 +15,7 @@ NOTES:
 - upload labeled data somewhere
 
 IMPORTANT:
-- we might not need more than one camera or SLAM, since we only need to find the path/line for each crossroad choice/turn, just train a model like the one example from comma.ai (the one they used for bloomberg)
+- no more than one camera or SLAM needed since this is just path prediction and not navigation
 - need lots of varied datasets (need to label them as well, <crossroad/no-crossroad>, <path car followed>)
 - DIFFERENT TYPES OF CROSSROADS (net's outputs cannot be binary)
 - get argmax(outputs) to get the estimated crossroad type (need a dictionary as well)
@@ -28,4 +28,9 @@ TODO:
 - repeat the process for paths (need to convert lines from visual (using drawing or something) to pitch-yaw coordinates like in the new comma.ai calibration challenge)
 
 - find a good GPS API and just query it for directions
+
+Inspiration Content:
+- Comma.ai Research [ https://github.com/commaai/research ]
+- Comma.ai Calibration Challenge [ https://github.com/commaai/calib_challenge ]
+- Andrej Karpathy's lectures and presentation (Tesla Autonomy day, etc)
 
