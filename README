@@ -5,7 +5,7 @@ Subject: Monocular Crossroad Detection and Path Prediction (Self-Driving Cars)
 
 GOAL -> Use single camera and solve the following tasks:
 *build a net that detects corssroads (+ how far they are?, might not be possible without SLAM, so may not do that)
-*build a net that finds different paths in crossroads (maybe use a SLAM library for that or build my own pathfinder)(not something fancy, just need to draw path of turn, then it's back to basic cruising) (pitch + yaw for path data)
+*build a net that finds different paths in crossroads (maybe use a SLAM library for that or build my own pathfinder)(not something fancy, just need to draw path of turn, then it's back to basic cruising) 
 *select a path based on GPS data (just the command: left, right, straight)
 
 NOTES:
@@ -22,6 +22,7 @@ IMPORTANT:
 
 TODO:
 - make a script using cv2 that lets me label frames, labels go to a txt file with the same name as the video, each line represents frame label (non crossroad videos should be pretty straightforward)
+- preprocess the data (need YUV images for the networks)
 - make a training script that goes through all videos and their text-files (labels) and puts the data together for training
 - design and train the conv-neural-net (repeat until accuracy is correct) (don't forget to make a test dataset)
 
