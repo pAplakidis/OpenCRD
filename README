@@ -19,6 +19,8 @@ IMPORTANT:
 - need lots of varied datasets (need to label them as well, <crossroad/no-crossroad>, <path car followed>)
 - DIFFERENT TYPES OF CROSSROADS (net's outputs cannot be binary)
 - get argmax(outputs) to get the estimated crossroad type (need a dictionary as well)
+- Convolutional Neural Net for Detection and Recurrent (using 2 images at a time?) for path planning (need to ground truth desire as well, for later GPS usage)
+- check out [https://medium.com/@mankaran32/end-to-end-motion-planning-with-deep-learning-comma-ais-approach-5886268515d3 ]
 
 TODO:
 - make a script using cv2 that lets me label frames, labels go to a txt file with the same name as the video, each line represents frame label (non crossroad videos should be pretty straightforward)
