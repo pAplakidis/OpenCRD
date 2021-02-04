@@ -21,7 +21,7 @@ IMPORTANT:
 - get argmax(outputs) to get the estimated crossroad type (need a dictionary as well)
 - Convolutional Neural Net for Detection and Recurrent (using 2 images at a time?) for path planning (need to ground truth desire as well, for later GPS usage)
 - check out [https://medium.com/@mankaran32/end-to-end-motion-planning-with-deep-learning-comma-ais-approach-5886268515d3 ]
-- for drawing the path lines on the images check out modeld implementation [ https://github.com/littlemountainman/modeld/blob/3340d7f86c1e5258e890af02989eb72ae39a208f/common/lanes_image_space.py#L65 ]
+- for drawing the path lines on the images check out modeld implementation (you would just need to project the lane to camera. can use height = 1.22m and yaw and pitch from camera calibration to construct projection matrix) [ https://github.com/littlemountainman/modeld/blob/3340d7f86c1e5258e890af02989eb72ae39a208f/common/lanes_image_space.py#L65 ]
 
 TODO:
 - make a script using cv2 that lets me label frames, labels go to a txt file with the same name as the video, each line represents frame label (non crossroad videos should be pretty straightforward)
