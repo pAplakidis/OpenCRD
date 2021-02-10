@@ -34,7 +34,7 @@ def get_video_data(path):
 if __name__ == '__main__':
   # TODO: open multiple videos and store frames (skip some since they are almost identical)
   data_path = "data/videos/with_crossroads/"
-  filename = "production ID_4370833.mp4"
+  filename = "city_1.mp4"
 
   # TODO: save frames and label them
   frames = get_video_data(data_path + filename)

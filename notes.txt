@@ -20,6 +20,6 @@ Depth Perception from Vision:
 FOR PATH PLANNING CHECK THIS [ https://towardsdatascience.com/can-self-driving-car-think-6c9e8d939d60 ]
 
 the neural nets:
-- convolutional for crossroad classification -> inputs: YUV image frame, outputs: crossroad class
+- convolutional for crossroad classification -> inputs: YUV image frame, outputs: crossroad or not
 - recurrent for path planning -> inputs: 2 consecutive YUV image frames + desire (from GPS), outputs path (trajectory output to be followed) + maybe left-right lanes
 
