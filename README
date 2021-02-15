@@ -32,6 +32,7 @@ OR
 
 TODO:
 - make a script using cv2 that lets me label frames, labels go to a txt file with the same name as the video, each line represents frame label (non crossroad videos should be pretty straightforward)
+- for the path finder, make a script to extract the frames with crossroads (we only need those to train for navigation) + labels?(that can be done later)
 - preprocess the data (need YUV images for the networks)
 - make a training script that goes through all videos and their text-files (labels) and puts the data together for training (or use an existing one)
 - draw path line in image and bird's eye view

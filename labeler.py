@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import sys
 import cv2
 import numpy as np
 
@@ -11,16 +12,18 @@ W = 1280
 H = 960
 
 if __name__ == '__main__':
-  # TODO: make these work with args
   #data_path = "data/videos/with_crossroads/"
-  data_path = "data/videos/without_crossroads/"
+  #data_path = "data/videos/without_crossroads/"
   #filename = "city_1.mp4"
-  filename = "highway_2.mp4"
+  #filename = "highway_2.mp4"
 
-  label_path = data_path + "highway_2"
+  # NOTE: only .mp4 videos
+  video_path = sys.argv[1]
+  data_path = "/".join(video_path.split("/")[:-1]) + "/"
+  label_path = video_path[:-4]
 
-  cap = cv2.VideoCapture(data_path+filename)
-  label_file = open(label_path + ".txt", "w")
+  #cap = cv2.VideoCapture(data_path+filename)
+  cap = cv2.VideoCapture(video_path)
   labels = []
   
   idx = 0
@@ -41,10 +44,11 @@ if __name__ == '__main__':
           break
       else:
         # if key pressed is 'c' then crossroad detected, if key is 'q' stop, of key is other continue (no crossroad)
-        if cv2.waitKey(0) & 0xff == ord('c'):
+        key = cv2.waitKey(0)
+        if key & 0xff == ord('c'):
           label = 1
           labels.append(label)
-        elif cv2.waitKey(0) & 0xff == ord('q'):
+        elif key & 0xff == ord('q'):
           break
         else:
           label = 0
@@ -58,6 +62,7 @@ if __name__ == '__main__':
   cv2.destroyAllWindows()
 
   # save to file
+  label_file = open(label_path + ".txt", "w")
   for label in labels:
     label_file.write(str(label) + "\n")
   print("Labels writen to", label_path+".txt")
