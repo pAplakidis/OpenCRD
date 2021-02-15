@@ -3,20 +3,13 @@ import sys
 import cv2
 import numpy as np
 
-# NOTE: for every frame/line output the label in a txt file
-# NOTE: might not need to split into frames (check comma.ai calib_challenge on how people used mp4 videos for convolutional neural net)
-
-# 1 = crossroad, 0 = no_crossroad
 # (3, 960, 1280) inputs images
 W = 1280
 H = 960
 
+# for every frame/line output the label in a txt file
+# 1 = crossroad, 0 = no_crossroad
 if __name__ == '__main__':
-  #data_path = "data/videos/with_crossroads/"
-  #data_path = "data/videos/without_crossroads/"
-  #filename = "city_1.mp4"
-  #filename = "highway_2.mp4"
-
   # NOTE: only .mp4 videos
   video_path = sys.argv[1]
   data_path = "/".join(video_path.split("/")[:-1]) + "/"
@@ -43,8 +36,8 @@ if __name__ == '__main__':
         if cv2.waitKey(1) & 0xff == ord('q'):
           break
       else:
-        # if key pressed is 'c' then crossroad detected, if key is 'q' stop, of key is other continue (no crossroad)
         key = cv2.waitKey(0)
+        # if key pressed is 'c' then crossroad detected, if key is 'q' stop, of key is other continue (no crossroad)
         if key & 0xff == ord('c'):
           label = 1
           labels.append(label)
