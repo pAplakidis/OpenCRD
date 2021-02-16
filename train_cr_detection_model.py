@@ -2,6 +2,7 @@
 import sys
 import numpy as np
 import cv2
+import pims
 
 import torch
 import torch.nn as nn
@@ -23,41 +24,14 @@ def get_data(video_path, log_path):
   cap = cv2.VideoCapture(video_path)
   idx = 0
 
-  # TODO: this comsumes a lot of memory!!!
+  # TODO: try nvidia's video loader nvvl
   print("Extracting frames ...")
-  vframes, aframes, info = torchvision.io.read_video(video_path)
-  print(vframes)
-  print(aframes)
-  print(info)
-  """
-  reader = torchvision.io.VideoReader(video_path, "video")
-  reader.seek(2)
-  idx = 0
-  for frame in reader:
-    print("Reading frame", idx)
-    frames.append(frame['data'])
-  print("Frames read")
-  """
-  """
-  while(cap.isOpened()):
-    ret, frame = cap.read()
-    if ret:
-      frame = cv2.resize(frame, (W,H))
-      print("Reading frame %d ..." % idx)
-      frames.append(frame)
-      #cv2.imshow('frame', frame)
-      idx += 1
-      if cv2.waitKey(1) & 0xff == ord('q'):
-        break 
-    else:
-      break
-  cap.release()
-  cv2.destroyAllWindows()
-  """
-
+  # TODO: find out why it reshapes the images
+  # NOTE: to access frames just do: frame = frames[n]
+  frames = pims.Video(video_path)
   print("Done extracting frames")
     
-  return np.array(frames), np.array(labels) 
+  return frames, np.array(labels) 
 
 class Net(nn.Module):
   def __init__(self):
@@ -94,7 +68,8 @@ if __name__ == '__main__':
 
   frames, labels = get_data(video_path, log_path)
   print("Frames:")
-  print(frames)
+  print(frames[0])
+  print(frames[0].shape)
   print("Labels:")
   print(labels)
   #model = Net()
