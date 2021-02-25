@@ -1,0 +1,4 @@
+TASKS for each NN:
+- detect crossroads
+- predict path in the intersections based on the desired direction (forward, left, right)
+

@@ -7,6 +7,8 @@ import numpy as np
 W = 1280
 H = 960
 
+# TODO: implement timestamps (so we can go back and forth wherever we want in the video, this might need extra work with the line indices so they can match the frames)
+
 # for every frame/line output the label in a txt file
 # 1 = crossroad, 0 = no_crossroad
 if __name__ == '__main__':

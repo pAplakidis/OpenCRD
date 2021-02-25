@@ -51,7 +51,6 @@ class ConvNet(nn.Module):
     self.fc1 = nn.Linear(16 * 5 * 5, 120)
     self.fc2 = nn.Linear(120, 84)
     self.fc3 = nn.Linear(84, 5)
-    # types of crossroads: no_crossroad, regular cross, T shaped, T (no left), T (no right)
 
   def forward(self, x):
     x = self.pool(F.relu(self.conv1(x)))
@@ -76,7 +75,7 @@ def train(X_train, Y_train):
   losses, accuracies = [], []
 
   for i in (t := trange(1000)):
-    samp = np.random.randong(0, X_train_shape[0], size=(BS))
+    samp = np.random.randint(0, X_train.shape[0], size=(BS))
     X = torch.tensor(X_train[samp].reshape((-1, 28*28))).float()  # TODO: check the docs, the shape might be wrong
     Y = torch.tensor(Y_train[samp]).long()                        # TODO: long might be too much, maybe use float instead
     model.zero_grad()
