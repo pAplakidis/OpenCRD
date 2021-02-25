@@ -33,7 +33,7 @@ def get_data(video_path, log_path):
 
   return frames, np.array(labels).astype(np.int)
 
-class Net(nn.Module):
+class ConvNet(nn.Module):
   def __init__(self):
     super(Net, self).__init__()
    
@@ -47,7 +47,7 @@ class Net(nn.Module):
     self.pool = nn.MaxPool2d(2, 2)
     self.conv2 = nn.Conv2d(6, 16, 5)
 
-    # Convolutional layers
+    # Fully connected layers
     self.fc1 = nn.Linear(16 * 5 * 5, 120)
     self.fc2 = nn.Linear(120, 84)
     self.fc3 = nn.Linear(84, 5)
@@ -67,7 +67,7 @@ def train(X_train, Y_train):
   # NOTE: since pims reads with the original shape and swaps r and b channels, use this for the frames
   #img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
   #img = cv2.resize(img, (W,H))
-  model = Net()
+  model = ConvNet()
   
   # TODO: check the docs for proper training script
   loss_function = nn.NLLLoss(reduction='none')
@@ -78,7 +78,7 @@ def train(X_train, Y_train):
   for i in (t := trange(1000)):
     samp = np.random.randong(0, X_train_shape[0], size=(BS))
     X = torch.tensor(X_train[samp].reshape((-1, 28*28))).float()  # TODO: check the docs, the shape might be wrong
-    Y = torch.tensor(Y_train[samp]).long()
+    Y = torch.tensor(Y_train[samp]).long()                        # TODO: long might be too much, maybe use float instead
     model.zero_grad()
     out = model(X)
     cat = torch.round(out)  # TODO: in the deployment need to print out the probability of crossroad (rounded label + nonrounded value for explainability)
