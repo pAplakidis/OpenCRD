@@ -28,6 +28,7 @@ if __name__ == '__main__':
     if ret:
       frame = cv2.resize(frame, (W,H))
       print("Frame", idx)
+      print(frame.shape)
       cv2.imshow('frame', frame)
       idx += 1
 

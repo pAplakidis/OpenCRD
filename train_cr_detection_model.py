@@ -61,11 +61,7 @@ class ConvNet(nn.Module):
     x = self.fc3(x)
     return x
 
-def train(X_train, Y_train):
-  # TODO: batch-process the frames
-  # NOTE: since pims reads with the original shape and swaps r and b channels, use this for the frames
-  #img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-  #img = cv2.resize(img, (W,H))
+def train(frames, Y_train):
   model = ConvNet()
   
   # TODO: check the docs for proper training script
@@ -75,12 +71,23 @@ def train(X_train, Y_train):
   losses, accuracies = [], []
 
   for i in (t := trange(1000)):
-    samp = np.random.randint(0, X_train.shape[0], size=(BS))
-    X = torch.tensor(X_train[samp].reshape((-1, 28*28))).float()  # TODO: check the docs, the shape might be wrong
-    Y = torch.tensor(Y_train[samp]).long()                        # TODO: long might be too much, maybe use float instead
+    samp = np.random.randint(0, len(frames), size=(BS))
+
+    # TODO: this is very slow and memory consuming
+    X_train = []
+    print("Extracting frames ...")
+    cnt = 0
+    for idx in samp:
+      print("%d,%d"%(cnt,idx))
+      X_train.append(cv2.resize(cv2.cvtColor(frames[idx], cv2.COLOR_BGR2RGB), (W,H)))
+      cnt += 1
+    X_train = np.array(X_train)
+
+    X = torch.tensor(X_train).float()
+    Y = torch.tensor(Y_train[samp]).long()
     model.zero_grad()
     out = model(X)
-    cat = torch.round(out)  # TODO: in the deployment need to print out the probability of crossroad (rounded label + nonrounded value for explainability)
+    cat = torch.round(out)  # TODO: in the deployment need to print out the probability of crossroad (rounded label + nonrounded value for explainability) + in deployment don't use round, instead use a threshold higher than 50% (maybe 80%)
     accuracy = (cat == Y).float().mean()  # TODO: this might give AttributeError (FIX IT)
     loss = loss_function(out, Y)
     loss = loss.mean()
