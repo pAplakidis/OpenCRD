@@ -24,7 +24,6 @@ def get_data(video_path, log_path):
     log_file.close()
   print("Log file read")
 
-  # TODO: check nvidia's nvvl [ https://github.com/NVIDIA/nvvl ] [ https://github.com/mitmul/pynvvl ]
   # make a Video Object instead of loading all frames in memory
   # to access frames just do: frame = frames[n]
   print("Extracting frames ...")
@@ -64,16 +63,15 @@ class ConvNet(nn.Module):
 def train(frames, Y_train):
   model = ConvNet()
   
-  # TODO: check the docs for proper training script
-  loss_function = nn.NLLLoss(reduction='none')
-  optim = torch.optim.SGD(model.parameters(), lr=0.001, momentum=0)
+  loss_function = nn.NLLLoss(reduction='none')  # check if this loss is better (or try nn.CrossEntropyLoss())
+  optim = torch.optim.SGD(model.parameters(), lr=0.001, momentum=0) # TODO: check if momentum is correct
   BS = 128
   losses, accuracies = [], []
 
   for i in (t := trange(1000)):
     samp = np.random.randint(0, len(frames), size=(BS))
 
-    # TODO: this is very slow and memory consuming
+    # TODO: this is very slow and memory consuming, try to improve it's performance
     X_train = []
     print("Extracting frames ...")
     cnt = 0
@@ -87,8 +85,8 @@ def train(frames, Y_train):
     Y = torch.tensor(Y_train[samp]).long()
     model.zero_grad()
     out = model(X)
-    cat = torch.round(out)  # TODO: in the deployment need to print out the probability of crossroad (rounded label + nonrounded value for explainability) + in deployment don't use round, instead use a threshold higher than 50% (maybe 80%)
-    accuracy = (cat == Y).float().mean()  # TODO: this might give AttributeError (FIX IT)
+    cat = torch.round(out)  # TODO: in the deployment need to print out the probability of crossroad (rounded label + nonrounded value for explainability) + in deployment don't use round, instead use a threshold higher than 50% (maybe 80%) (the last part might be applied in the training as well, test to see)
+    accuracy = (cat == Y).float().mean()  # TODO: this might give AttributeError (FIX IT) (or it may not since we are dealing with tensors)
     loss = loss_function(out, Y)
     loss = loss.mean()
     loss.backward()
@@ -105,7 +103,7 @@ def train(frames, Y_train):
   
   return model
 
-# TODO: evaluate the net + compute gradients in torch
+# TODO: evaluate the net + compute gradients in torch (need to split data to train and test first)
 def evaluate(model):
   pass
 
@@ -128,7 +126,9 @@ if __name__ == '__main__':
   cv2.destroyAllWindows()
   """
 
-  # model = train(frames, labels)
-  # TODO: save the model in models/
-  # evaluate(model)
+  model = train(frames, labels)
+  evaluate(model)
+
+  model_path = "models/cr_detection_conv_model.pt"
+  torch.save(model, model_path)
 
