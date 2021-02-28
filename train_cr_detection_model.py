@@ -65,6 +65,9 @@ def train(frames, Y_train):
   
   loss_function = nn.NLLLoss(reduction='none')  # check if this loss is better (or try nn.CrossEntropyLoss())
   optim = torch.optim.SGD(model.parameters(), lr=0.001, momentum=0) # TODO: check if momentum is correct
+
+  # TODO: check whether we need to use batch size (could be too expensive, it already is for memory + 128 is a lot of images together)
+  # TODO: add 2 epochs/dataset iterations
   BS = 128
   losses, accuracies = [], []
 
@@ -129,6 +132,7 @@ if __name__ == '__main__':
   model = train(frames, labels)
   evaluate(model)
 
+  # TODO: we also need to load and retrain the model (so instead of model = ConvNet() we load it)
   model_path = "models/cr_detection_conv_model.pt"
   torch.save(model, model_path)
 
