@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 import sys
 import numpy as np
+from tqdm import trange
 
 import cv2
 import pims
 import matplotlib.pyplot as plt
-from plt import plot
+from matplotlib.pyplot import plot
 
 import torch
 import torch.nn as nn
@@ -32,9 +33,10 @@ def get_data(video_path, log_path):
 
   return frames, np.array(labels).astype(np.int)
 
+# TODO: fix inputs and outputs sizes
 class ConvNet(nn.Module):
   def __init__(self):
-    super(Net, self).__init__()
+    super(ConvNet, self).__init__()
    
     # image size
     self.W = W
@@ -62,7 +64,10 @@ class ConvNet(nn.Module):
 
 def train(frames, Y_train):
   model = ConvNet()
-  
+  device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+  #if device:
+  #  model.to(device)
+
   loss_function = nn.NLLLoss(reduction='none')  # check if this loss is better (or try nn.CrossEntropyLoss())
   optim = torch.optim.SGD(model.parameters(), lr=0.001, momentum=0) # TODO: check if momentum is correct
 
@@ -84,8 +89,8 @@ def train(frames, Y_train):
       cnt += 1
     X_train = np.array(X_train)
 
-    X = torch.tensor(X_train).float()
-    Y = torch.tensor(Y_train[samp]).long()
+    X = torch.tensor(X_train).float()#.to(device)
+    Y = torch.tensor(Y_train[samp]).long()#.to(device)
     model.zero_grad()
     out = model(X)
     cat = torch.round(out)  # TODO: in the deployment need to print out the probability of crossroad (rounded label + nonrounded value for explainability) + in deployment don't use round, instead use a threshold higher than 50% (maybe 80%) (the last part might be applied in the training as well, test to see)
