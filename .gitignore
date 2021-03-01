@@ -1,5 +1,4 @@
 /data
-/notebooks
 .*.swp
 .ipynb_checkpoints/
 

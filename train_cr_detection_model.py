@@ -33,7 +33,7 @@ def get_data(video_path, log_path):
 
   return frames, np.array(labels).astype(np.int)
 
-# TODO: fix inputs and outputs sizes
+# TODO: fix inputs and outputs sizes and channels + test out different numbers of layers (conv2d + fc) and neurons per layer
 class ConvNet(nn.Module):
   def __init__(self):
     super(ConvNet, self).__init__()
@@ -43,73 +43,85 @@ class ConvNet(nn.Module):
     self.H = H
 
     # Convolutional layers
-    # TODO: decide layers architecture depending on the images to be used
     self.conv1 = nn.Conv2d(3, 6, 5)
     self.pool = nn.MaxPool2d(2, 2)
     self.conv2 = nn.Conv2d(6, 16, 5)
 
     # Fully connected layers
-    self.fc1 = nn.Linear(16 * 5 * 5, 120)
+    self.fc1 = nn.Linear(16 * W * H, 120) # TODO: this consumes a lot of memory, maybe change W and H to smaller values
     self.fc2 = nn.Linear(120, 84)
-    self.fc3 = nn.Linear(84, 5)
+    self.fc3 = nn.Linear(84, 1)
 
   def forward(self, x):
     x = self.pool(F.relu(self.conv1(x)))
     x = self.pool(F.relu(self.conv2(x)))
-    x = x.view(-1, 16 * 5 * 5)
+    x = x.view(-1, self.num_flat_features(x))
     x = F.relu(self.fc1(x))
     x = F.relu(self.fc2(x))
-    x = self.fc3(x)
+    x = F.sigmoid(self.fc3(x))  # sigmoid for binary classification
     return x
+
+  def num_flat_features(self, x):
+    size = x.size()[1:] # all dimensions except the batch dimension
+    num_features = 1
+    for s in size:
+      num_features *= s
+    return num_features
 
 def train(frames, Y_train):
   model = ConvNet()
-  device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-  #if device:
-  #  model.to(device)
+  #device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+  if device:
+    model.to(device)
 
   loss_function = nn.NLLLoss(reduction='none')  # check if this loss is better (or try nn.CrossEntropyLoss())
   optim = torch.optim.SGD(model.parameters(), lr=0.001, momentum=0) # TODO: check if momentum is correct
 
-  # TODO: check whether we need to use batch size (could be too expensive, it already is for memory + 128 is a lot of images together)
-  # TODO: add 2 epochs/dataset iterations
-  BS = 128
+  BS = 32
   losses, accuracies = [], []
 
-  for i in (t := trange(1000)):
-    samp = np.random.randint(0, len(frames), size=(BS))
+  for epoch in range(2):
+    print("[+] Epoch", epoch)
+    running_loss = 0.0
+    for i in (t := trange(len(frames))):
 
-    # TODO: this is very slow and memory consuming, try to improve it's performance
-    X_train = []
-    print("Extracting frames ...")
-    cnt = 0
-    for idx in samp:
-      print("%d,%d"%(cnt,idx))
-      X_train.append(cv2.resize(cv2.cvtColor(frames[idx], cv2.COLOR_BGR2RGB), (W,H)))
-      cnt += 1
-    X_train = np.array(X_train)
+      # TODO: add batch of images
+      # get data into network
+      X_train = cv2.resize(cv2.cvtColor(frames[i], cv2.COLOR_BGR2RGB), (W,H))
+      X = torch.tensor(X_train).float()#.to(device)
+      Y = torch.tensor(Y_train[i])#.to(device)
+      model.zero_grad()
 
-    X = torch.tensor(X_train).float()#.to(device)
-    Y = torch.tensor(Y_train[samp]).long()#.to(device)
-    model.zero_grad()
-    out = model(X)
-    cat = torch.round(out)  # TODO: in the deployment need to print out the probability of crossroad (rounded label + nonrounded value for explainability) + in deployment don't use round, instead use a threshold higher than 50% (maybe 80%) (the last part might be applied in the training as well, test to see)
-    accuracy = (cat == Y).float().mean()  # TODO: this might give AttributeError (FIX IT) (or it may not since we are dealing with tensors)
-    loss = loss_function(out, Y)
-    loss = loss.mean()
-    loss.backward()
-    optim.step()
-    loss, accuracy = loss.item(), accuracy.item()
-    losses.append(loss)
-    accuracies.append(accuracy)
-    t.set_description("loss %.2f accuracy %.2f" % (loss, accuracy))
+      # forward feed and backpropagation
+      out = model(X)
+      cat = torch.round(out)
+      accuracy = (cat == Y).float().mean()
+      loss = loss_function(out, Y)
+      loss.backward()
+      optim.step()
+
+      # print stats
+      loss, accuracy = loss.item(), accuracy.item()
+      losses.append(loss)
+      accuracies.append(accuracy)
+      t.set_description("loss %.2f accuracy %.2f" % (loss, accuracy))
 
   # plot losses and accuracies
   plt.ylim(-0.1, 1.1)
   plot(losses)
   plot(accuracies)
+
+  """
+  # OLD TRAINING SCRIPT (bad memory usage, just kept some helpful notes for batch training)
+  for i in (t := trange(1000)):
+    samp = np.random.randint(0, len(frames), size=(BS))
+    for idx in samp:
+      X_train.append(cv2.resize(cv2.cvtColor(frames[idx], cv2.COLOR_BGR2RGB), (W,H)))
+    Y = torch.tensor(Y_train[samp]).long()#.to(device)
+  """
   
   return model
+ 
 
 # TODO: evaluate the net + compute gradients in torch (need to split data to train and test first)
 def evaluate(model):
@@ -121,18 +133,6 @@ if __name__ == '__main__':
   log_path = video_path[:-4] + ".txt"
 
   frames, labels = get_data(video_path, log_path)
-
-  # NOTE: DEBUGGING CODE/EXAMPLE FOR PROCESSING/SHOWING FRAME
-  """
-  print("Frame 300")
-  frame = frames[300]
-  frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-  frame = cv2.resize(frame, (W,H))
-  cv2.imshow('frame', frame)
-  print("Label:", LABEL_DICT[labels[300]])
-  cv2.waitKey(0)
-  cv2.destroyAllWindows()
-  """
 
   model = train(frames, labels)
   evaluate(model)
