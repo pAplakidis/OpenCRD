@@ -89,6 +89,7 @@ def train(frames, Y_train):
 
       # TODO: add batch of images (if memory allows it)
       # get data into network
+      # TODO: maybe reshape to (3, H, W) instead of (W, H, 3)
       X_train = cv2.resize(cv2.cvtColor(frames[i], cv2.COLOR_BGR2RGB), (W,H))
       X = torch.tensor(X_train).float()#.to(device)
       Y = torch.tensor(Y_train[i])#.to(device)
