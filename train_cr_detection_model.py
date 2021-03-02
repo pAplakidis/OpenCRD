@@ -15,8 +15,8 @@ import torchvision
 import torchvision.transforms as transforms
 
 # resolution
-W = 1280
-H = 960
+W = 320
+H = 160
 LABEL_DICT = {0: "no crossroad", 1: "crossroad"}
 
 def get_data(video_path, log_path):
@@ -33,7 +33,8 @@ def get_data(video_path, log_path):
 
   return frames, np.array(labels).astype(np.int)
 
-# TODO: fix inputs and outputs sizes and channels + test out different numbers of layers (conv2d + fc) and neurons per layer
+# TODO: predict crossroad distance as well? (will make the project actually useful, it might not matter if we can output a good path (car will slow down to turn in the curve))
+# test out different numbers of layers (conv2d + fc) and neurons per layer
 class ConvNet(nn.Module):
   def __init__(self):
     super(ConvNet, self).__init__()
@@ -42,13 +43,13 @@ class ConvNet(nn.Module):
     self.W = W
     self.H = H
 
-    # Convolutional layers
+    # Convolutional layers (TODO: maybe add another one and have bigger output channels?)
     self.conv1 = nn.Conv2d(3, 6, 5)
     self.pool = nn.MaxPool2d(2, 2)
     self.conv2 = nn.Conv2d(6, 16, 5)
 
     # Fully connected layers
-    self.fc1 = nn.Linear(16 * W * H, 120) # TODO: this consumes a lot of memory, maybe change W and H to smaller values
+    self.fc1 = nn.Linear(16 * W * H, 120) # TODO: this consumes a lot of emory, maybe change W and H to smaller values
     self.fc2 = nn.Linear(120, 84)
     self.fc3 = nn.Linear(84, 1)
 
@@ -74,8 +75,9 @@ def train(frames, Y_train):
   if device:
     model.to(device)
 
-  loss_function = nn.NLLLoss(reduction='none')  # check if this loss is better (or try nn.CrossEntropyLoss())
-  optim = torch.optim.SGD(model.parameters(), lr=0.001, momentum=0) # TODO: check if momentum is correct
+  loss_function = nn.BCELoss()  # Binary Cross-Entropy Loss for binary classification problem
+  #optim = torch.optim.SGD(model.parameters(), lr=0.001, momentum=0) # TODO: check if momentum is correct + check if ADAM is better
+  optim = torch.optim.Adam(model.parameters(), lr=0.001)  # TODO: experiment with different learning rates(lr)
 
   BS = 32
   losses, accuracies = [], []
@@ -85,7 +87,7 @@ def train(frames, Y_train):
     running_loss = 0.0
     for i in (t := trange(len(frames))):
 
-      # TODO: add batch of images
+      # TODO: add batch of images (if memory allows it)
       # get data into network
       X_train = cv2.resize(cv2.cvtColor(frames[i], cv2.COLOR_BGR2RGB), (W,H))
       X = torch.tensor(X_train).float()#.to(device)
