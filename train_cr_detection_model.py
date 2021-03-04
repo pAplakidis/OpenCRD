@@ -71,7 +71,7 @@ class ConvNet(nn.Module):
 
 def train(frames, Y_train):
   model = ConvNet()
-  #device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+  device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
   if device:
     model.to(device)
 
@@ -91,8 +91,8 @@ def train(frames, Y_train):
       # get data into network
       # TODO: maybe reshape to (3, H, W) instead of (W, H, 3)
       X_train = cv2.resize(cv2.cvtColor(frames[i], cv2.COLOR_BGR2RGB), (W,H))
-      X = torch.tensor(X_train).float()#.to(device)
-      Y = torch.tensor(Y_train[i])#.to(device)
+      X = torch.tensor(X_train).float().to(device)
+      Y = torch.tensor(Y_train[i]).to(device)
       model.zero_grad()
 
       # forward feed and backpropagation
@@ -141,6 +141,7 @@ if __name__ == '__main__':
   evaluate(model)
 
   # TODO: we also need to load and retrain the model (so instead of model = ConvNet() we load it)
+  # NOTE: since we are training using Adam optimizer, we need to save the optimizer state dict as well and reload that along with the model for retraining with new data
   model_path = "models/cr_detection_conv_model.pt"
   torch.save(model, model_path)
 
