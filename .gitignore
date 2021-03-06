@@ -1,5 +1,6 @@
 data/
 notebooks/
+models/
 .*.swp
 .ipynb_checkpoints/
 

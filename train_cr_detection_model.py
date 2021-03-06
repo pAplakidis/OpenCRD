@@ -100,6 +100,7 @@ def train(frames, Y_train):
       cat = torch.round(out)
       accuracy = (cat == Y).float().mean()
       loss = loss_function(out, Y)
+      loss = loss.mean()
       loss.backward()
       optim.step()
 
