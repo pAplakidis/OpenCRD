@@ -1,6 +1,7 @@
 data/
 notebooks/
 models/
+__pycache__/
 .*.swp
 .ipynb_checkpoints/
 
