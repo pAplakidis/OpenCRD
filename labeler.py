@@ -61,6 +61,6 @@ if __name__ == '__main__':
   label_file = open(label_path + ".txt", "w")
   for label in labels:
     label_file.write(str(label) + "\n")
-  print("Labels writen to", label_path+".txt")
+  print("Labels written to", label_path+".txt")
   label_file.close()
 
