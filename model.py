@@ -7,10 +7,6 @@ class CRDetector(nn.Module):
   def __init__(self):
     super(CRDetector, self).__init__()
 
-    # image size
-    self.W = W
-    self.H = H
-
     # Convolutional Layers
     self.conv1 = nn.Conv2d(3, 16, 5)
     self.pool = nn.MaxPool2d(2, 2)

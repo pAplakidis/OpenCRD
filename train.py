@@ -10,7 +10,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from models import CRDetector
+from model import CRDetector
 
 
 #resolution and labels
@@ -141,7 +141,7 @@ def save_model(model, path):
 # load the model
 def load_model(path):
   model = CRDetector()
-  model.load_state_dict(torch.load(model_path))
+  model.load_state_dict(torch.load(path))
   model.train()  # for training on new dataset
   #model.eval()  # for evaluation/deployment
   return model
