@@ -22,9 +22,12 @@ print(device)
 eval_path = sys.argv[1]
 log_path = eval_path[:-4] + ".txt"
 
-with open(log_path, "r") as log_file:
-  eval_labels = log_file.read().split("\n")[:-1]
-  log_file.close()
+try:
+  with open(log_path, "r") as log_file:
+    eval_labels = log_file.read().split("\n")[:-1]
+    log_file.close()
+except FileNotFoundError:
+  eval_labels = None
 
 model_path = "models/cr_detector.pth"
 model = load_model(model_path).to(device)
@@ -42,7 +45,8 @@ while True:
       frame1 = cv2.resize(cv2.cvtColor(frames[0], cv2.COLOR_BGR2RGB), (W,H))
       frame2 = cv2.resize(cv2.cvtColor(frames[1], cv2.COLOR_BGR2RGB), (W,H))
       print("Frame:", idx)
-      print("[+] Ground Truth", eval_labels[idx], "->", LABEL_DICT[int(eval_labels[idx])])
+      if eval_labels:
+        print("[+] Ground Truth", eval_labels[idx], "->", LABEL_DICT[int(eval_labels[idx])])
       
       # forward to model
       X_test1 = np.moveaxis(frame1, -1, 0)
