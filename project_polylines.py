@@ -35,6 +35,23 @@ def extract_frame_lines(polylines):
   
   return frames
 
+# TODO: need to project polylines from coefficients as well (maybe use matplotlib on top of cv2 image)
+def extract_coefficients(annotations):
+  coefficients = []
+  for frame in annotations:
+    frame_coef = []
+    for polyline in frame:
+      polyline = np.array(polyline)
+      x, y = polyline.T[0], polyline.T[1]
+      coef = np.polyfit(x, y, 2)  # extract coefficients from 2nd degree polyilne points
+      frame_coef.append(coef)
+    coefficients.append(frame_coef)
+  return np.array(coefficients, dtype=object)
+
+# returns a, b, c coefficients of specific polyline in specific frame
+def get_coefficients(coefficients, frame, line):
+  return coefficients[frame][line]
+
 def display(video_file, annotations):
   cap = cv2.VideoCapture(video_file)
 
@@ -48,7 +65,6 @@ def display(video_file, annotations):
         polyline = np.array(polyline) # get points for every polyline
         print("Polyline:")
         print(polyline)
-        # TODO: extract coefficients in separate function for later use
         x, y = polyline.T[0], polyline.T[1]
         coefficients = np.polyfit(x, y, 2)  # extract coefficients from 2nd degree polyilne points
         print("Coefficients:")
@@ -64,10 +80,13 @@ def display(video_file, annotations):
   cv2.destroyAllWindows()
 
 
+# TODO: polylines' number of points need to be the same (for example 4)
 if __name__ == '__main__':
   video_file = sys.argv[1]
   annotations_file = sys.argv[2]
   polylines = extract_polylines(annotations_file)
   annotations = extract_frame_lines(polylines)
-  display(video_file, annotations)
+  #display(video_file, annotations)
+  coefficients = extract_coefficients(annotations)
+  print(get_coefficients(coefficients, 900, 1))
 
