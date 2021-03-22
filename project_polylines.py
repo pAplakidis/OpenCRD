@@ -20,6 +20,7 @@ def extract_polylines(filename):
 
   return sorted(polylines)
 
+# returns frames with annotations
 def extract_frame_lines(polylines):
   n_frames = polylines[-1][0]
   frames = []
@@ -34,19 +35,39 @@ def extract_frame_lines(polylines):
   
   return frames
 
-def draw_road_edges(frame, polylines):
-  pass
+def display(video_file, annotations):
+  cap = cv2.VideoCapture(video_file)
+
+  idx = 0
+  while True:
+    ret, frame = cap.read()
+    if ret:
+      print("[+] Frame:", idx)
+      polylines = annotations[idx]
+      for polyline in polylines:
+        polyline = np.array(polyline) # get points for every polyline
+        print("Polyline:")
+        print(polyline)
+        # TODO: extract coefficients in separate function for later use
+        x, y = polyline.T[0], polyline.T[1]
+        coefficients = np.polyfit(x, y, 2)  # extract coefficients from 2nd degree polyilne points
+        print("Coefficients:")
+        print(coefficients)
+        frame = cv2.polylines(frame, np.int32([polyline]), False, (0, 0, 255))
+      cv2.imshow('frame', frame)
+      if cv2.waitKey(1) & 0xff == ord('q'):
+        break
+      idx += 1
+    else:
+      break
+  cap.release()
+  cv2.destroyAllWindows()
 
 
 if __name__ == '__main__':
-  polylines = extract_polylines(sys.argv[1])
-  frames = extract_frame_lines(polylines)
-
-  idx = 0
-  for frame in frames:
-    print("Frame", idx)
-    for line in frame:
-      print(line)
-    print()
-    idx += 1
+  video_file = sys.argv[1]
+  annotations_file = sys.argv[2]
+  polylines = extract_polylines(annotations_file)
+  annotations = extract_frame_lines(polylines)
+  display(video_file, annotations)
 
