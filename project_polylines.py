@@ -35,7 +35,7 @@ def extract_frame_lines(polylines):
   
   return frames
 
-# TODO: need to project polylines from coefficients as well (maybe use matplotlib on top of cv2 image)
+# TODO: need to project polylines from coefficients as well (maybe use matplotlib on top of cv2 image) OR create new points from coefficients (since network will output only coefficients)
 def extract_coefficients(annotations):
   coefficients = []
   for frame in annotations:
