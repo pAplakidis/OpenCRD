@@ -2,8 +2,8 @@
 import sys
 import numpy as np
 import cv2
-import pandas as pd
 import xml.etree.ElementTree as ET
+from matplotlib import pyplot as plt
 
 def extract_polylines(filename):
   tree = ET.parse(filename) # read in the XML
@@ -52,9 +52,22 @@ def extract_coefficients(annotations):
 def get_coefficients(coefficients, frame, line):
   return coefficients[frame][line]
 
+# helps plot lines using coefficients
+def poly_coefficients(x, coeffs):
+  y = 0
+  for i in range(len(coeffs)):
+    y += coeffs[i]*x**i
+  return y
+
+# TODO: to make this work with coefs instead of points we need to have a start and a finish for every line (like in the PolyLaneNet paper)
+def plot_coefs(frame):
+  for coeffs in frame:
+    x = np.linspace(0, 9, 10)
+    plt.plot(x, poly_coefficients(x, coeffs))
+  plt.show()
+
 def display(video_file, annotations):
   cap = cv2.VideoCapture(video_file)
-
   idx = 0
   while True:
     ret, frame = cap.read()
@@ -70,6 +83,8 @@ def display(video_file, annotations):
         print("Coefficients:")
         print(coefficients)
         frame = cv2.polylines(frame, np.int32([polyline]), False, (0, 0, 255))
+      # TODO: need to find a way to resize the polylines to a low resolution to multitask-train with the 320x160-input CrossroadDetection model
+      frame = cv2.resize(frame, (1920//2, 1080//2))
       cv2.imshow('frame', frame)
       if cv2.waitKey(1) & 0xff == ord('q'):
         break
@@ -80,7 +95,7 @@ def display(video_file, annotations):
   cv2.destroyAllWindows()
 
 
-# TODO: polylines' number of points need to be the same (for example 4)
+# TODO: polylines' number of points need to be the same (for example 4, 6 might be better)
 if __name__ == '__main__':
   video_file = sys.argv[1]
   annotations_file = sys.argv[2]
@@ -88,5 +103,6 @@ if __name__ == '__main__':
   annotations = extract_frame_lines(polylines)
   #display(video_file, annotations)
   coefficients = extract_coefficients(annotations)
-  print(get_coefficients(coefficients, 900, 1))
+  #print(get_coefficients(coefficients, 900, 1))
+  #plot_coefs(coefficients[900])
 
