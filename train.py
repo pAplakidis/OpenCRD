@@ -14,8 +14,10 @@ from model import CRDetector
 
 
 #resolution and labels
-W = 320
-H = 160
+#W = 320
+#H = 160
+W = 480
+H = 320
 LABEL_DICT = {0: "no crossroad", 1: "crossroad"}
 
 
@@ -50,7 +52,8 @@ def train(frames, labels, model):
 
   losses, accuracies = [], []
   epochs = 11
-  BS = 128
+  #BS = 128
+  BS = 64
   
   # for rounding up to a threshold instead of 0.5 (works with torch.where)
   x = torch.ones(128, 1).to(device)
@@ -176,7 +179,7 @@ if __name__ == '__main__':
   for i in trange(len(video_files)):
     print("[~] Loading from files: %s , %s" % (base_dir+video_files[i], base_dir+log_files[i]))
     frames, labels = get_data(base_dir+video_files[i], base_dir+log_files[i])
-    frames = conv_frames(frames)
+    #frames = conv_frames(frames) # NOTE: this is used if the video input is not already (W,H)
     if i == 0:
       all_frames = frames
       all_labels = labels

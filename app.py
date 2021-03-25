@@ -10,6 +10,7 @@ import torch.nn.functional as F
 
 from train import load_model
 from model import CRDetector
+from project_polylines import extract_polylines, extract_frame_lines, draw_polylines
 
 W = 320
 H = 160
@@ -30,6 +31,7 @@ try:
 except FileNotFoundError:
   eval_labels = None
 
+# load Crossroad detector model (TODO: when we use multitask learning later, we will get all drawable data just from the model's output, for now we just do it separately)
 model_path = "models/cr_detector.pth"
 model = load_model(model_path).to(device)
 model.eval()
@@ -37,6 +39,11 @@ model.eval()
 # for rounding up to a threshold instead of 0.5 (works with torch.where)
 x = torch.ones(2, 1).to(device)
 y = torch.zeros(2, 1).to(device)
+
+# get polylines (TODO: this is temporary)
+annotations_file = sys.argv[2]
+polylines = extract_polylines(annotations_file)
+annotations = extract_frame_lines(polylines)
 
 cap = cv2.VideoCapture(eval_path)
 idx = 0
@@ -57,6 +64,7 @@ while True:
       if eval_labels:
         print("[+] Ground Truth", eval_labels[idx], "->", LABEL_DICT[int(eval_labels[idx])])
       
+      # NOTE: this part handles the network's outputs
       # forward to model
       X_test1 = np.moveaxis(frame1, -1, 0)
       X_test2 = np.moveaxis(frame2, -1, 0)
@@ -71,6 +79,11 @@ while True:
       #pred = LABEL_DICT[int(torch.round(Y_pred[1]).item())]  # round to threshold 0.5
       pred = LABEL_DICT[int(cat[1].item())]                   # round to custom threshold (e.g. 0.8)
       conf = Y_pred[1].item()
+
+      # NOTE: the rest is just display code
+      # display road edges (NOTE: ground truth for now, use network output later)
+      polylines = annotations[idx]
+      frames[1] = draw_polylines(cv2.resize(frames[1], (480, 320)), polylines)
 
       frames[1] = cv2.resize(frames[1], (1920//2, 1080//2))
 

@@ -94,6 +94,13 @@ def display(video_file, annotations):
   cap.release()
   cv2.destroyAllWindows()
 
+def draw_polylines(frame, polylines):
+  for polyline in polylines:
+    polyline = np.array(polyline)
+    x, y = polyline.T[0], polyline.T[1]
+    frame = cv2.polylines(frame, np.int32([polyline]), False, (0, 0, 255))
+  return frame
+
 
 # TODO: polylines' number of points need to be the same (for example 4, 6 might be better)
 if __name__ == '__main__':
