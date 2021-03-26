@@ -61,5 +61,5 @@ class REDetector(nn.Module):
 # mulitask learning model
 class ComboModel(nn.Module):
   def __init__(self):
-    super(ComboModel, self).__init()__
+    super(ComboModel, self).__init__()
 
