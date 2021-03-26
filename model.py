@@ -38,3 +38,28 @@ class CRDetector(nn.Module):
       num_features *= s
     return num_features
 
+# model for road edge detection
+class REDetector(nn.Module):
+  def __init__(self):
+    super(REDetector, self).__init__()
+
+    # Convolutional Layers
+    self.conv1 = nn.Conv2d(3, 16, 5)
+    self.pool = nn.MaxPool2d(2, 2)
+    self.conv2 = nn.Conv2d(16, 32, 5)
+    self.conv3 = nn.Conv2d(32, 64, 5)
+
+    # TODO: decide the fully connected architecture
+    # Fully connected layers
+    self.fc1 = nn.Linear(64 * 16 * 36, 120) # for 320x160 image 64 channels
+    self.bn1 = nn.BatchNorm1d(num_features=120)
+    self.fc2 = nn.Linear(120, 84)
+    self.bn2 = nn.BatchNorm1d(num_features=84)
+
+    # TODO: decide the architecture for the last neuron
+
+# mulitask learning model
+class ComboModel(nn.Module):
+  def __init__(self):
+    super(ComboModel, self).__init()__
+
