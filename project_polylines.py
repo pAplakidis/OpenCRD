@@ -101,6 +101,24 @@ def draw_polylines(frame, polylines):
     frame = cv2.polylines(frame, np.int32([polyline]), False, (0, 0, 255))
   return frame
 
+# converts current annotations to new resolution
+def convert_annotations(old_res, new_res, annotations):
+  W, H = old_res
+  new_W, new_H = new_res
+  new_annotations = []
+  for polylines in annotations:
+    new_polylines = []
+    for polyline in polylines:
+      new_polyline = []
+      for point in polyline:
+        x, y = point
+        new_x = (x*new_W) / W
+        new_y = (y*new_H) / H
+        new_polyline.append((new_x,new_y))
+      new_polylines.append(new_polyline)
+    new_annotations.append(new_polylines)
+  return np.array(new_annotations)
+
 
 # TODO: polylines' number of points need to be the same (for example 4, 6 might be better)
 if __name__ == '__main__':

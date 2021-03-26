@@ -10,11 +10,19 @@ import torch.nn.functional as F
 
 from train import load_model
 from model import CRDetector
-from project_polylines import extract_polylines, extract_frame_lines, draw_polylines
+from project_polylines import extract_polylines, extract_frame_lines, draw_polylines, convert_annotations
 
+# neural network input resolutions
 W = 320
 H = 160
 LABEL_DICT = {0: "no-crossroad", 1: "crossroad"}
+
+# resolution of road_edges annotations
+annot_W = 480
+annot_H = 320
+
+disp_W = 1920//2
+disp_H = 1080//2
 
 # check for nvidia GPU
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -44,6 +52,8 @@ y = torch.zeros(2, 1).to(device)
 annotations_file = sys.argv[2]
 polylines = extract_polylines(annotations_file)
 annotations = extract_frame_lines(polylines)
+annotations = convert_annotations((annot_W,annot_H), (disp_W,disp_H), annotations)  # convert the 480x320 lines to display resolution
+# TODO: need to convert them to 320x160 later on if we are going to use them on a multitask network and then convert them again to display resolution so that we display on HD
 
 cap = cv2.VideoCapture(eval_path)
 idx = 0
@@ -62,7 +72,7 @@ while True:
       frame2 = cv2.resize(cv2.cvtColor(frames[1], cv2.COLOR_BGR2RGB), (W,H))
       print("Frame:", idx)
       if eval_labels:
-        print("[+] Ground Truth", eval_labels[idx], "->", LABEL_DICT[int(eval_labels[idx])])
+        print("[+] Ground Truth:", eval_labels[idx], "->", LABEL_DICT[int(eval_labels[idx])])
       
       # NOTE: this part handles the network's outputs
       # forward to model
@@ -74,18 +84,20 @@ while True:
       X_test = np.array(X_test)
       X = torch.tensor(X_test).float().to(device)
       Y_pred = model(X)
-      print("[~] Predicted value", Y_pred[1].item())
+      print("[~] Predicted value:", Y_pred[1].item())
       cat = torch.where(Y_pred >= 0.8, x, y)
       #pred = LABEL_DICT[int(torch.round(Y_pred[1]).item())]  # round to threshold 0.5
       pred = LABEL_DICT[int(cat[1].item())]                   # round to custom threshold (e.g. 0.8)
       conf = Y_pred[1].item()
 
       # NOTE: the rest is just display code
+      frames[1] = cv2.resize(frames[1], (disp_W,disp_H))
+
       # display road edges (NOTE: ground truth for now, use network output later)
       polylines = annotations[idx]
-      frames[1] = draw_polylines(cv2.resize(frames[1], (480, 320)), polylines)
+      #frames[1] = draw_polylines(cv2.resize(frames[1], (W,H)), polylines)
+      frames[1] = draw_polylines(frames[1], polylines)
 
-      frames[1] = cv2.resize(frames[1], (1920//2, 1080//2))
 
       # display category text
       font = cv2.FONT_HERSHEY_SIMPLEX 
@@ -103,7 +115,7 @@ while True:
       prev_frame_time = new_frame_time
       fps = str(int(fps))
       print("FPS:", fps)
-      frames[1] = cv2.putText(frames[1],"FPS:"+fps, (1920//2 - 150, 25), font,
+      frames[1] = cv2.putText(frames[1],"FPS:"+fps, (disp_W - 150, 25), font,
                         fontScale, (0, 255, 0), thickness, cv2.LINE_AA)
 
       cv2.imshow("frame", frames[1])
