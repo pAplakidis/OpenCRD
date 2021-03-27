@@ -38,10 +38,16 @@ class CRDetector(nn.Module):
       num_features *= s
     return num_features
 
+
 # model for road edge detection
 class REDetector(nn.Module):
   def __init__(self):
     super(REDetector, self).__init__()
+
+    # polylines attributes
+    n_coords = 2  # number of coordiantes (x,y = 2)
+    n_points = 4  # number of points on each line
+    max_n_lines = 6 # max number of polylines in a frame
 
     # Convolutional Layers
     self.conv1 = nn.Conv2d(3, 16, 5)
@@ -57,6 +63,26 @@ class REDetector(nn.Module):
     self.bn2 = nn.BatchNorm1d(num_features=84)
 
     # TODO: decide the architecture for the last neuron
+    self.fc3 = nn.Linear(84, n_coords*n_points*max_n_lines)
+
+  def forward(self, x):
+    x = self.pool(F.relu(self.conv1(x)))
+    x = self.pool(F.relu(self.conv2(x)))
+    x = self.pool(F.relu(self.conv3(x)))
+    #print(x.shape)
+    x = x.view(-1, self.num_flat_features(x))
+    x = F.relu(self.bn1(self.fc1(x)))
+    x = F.relu(self.bn2(self.fc2(x)))
+    x = F.sigmoid(self.fc3(x))
+    return x
+
+  def num_flat_features(self, x):
+    size = x.size()[1:] # all dimensions except the batch dimension
+    num_features = 1
+    for s in size:
+      num_features *= s
+    return num_features
+
 
 # mulitask learning model
 class ComboModel(nn.Module):

@@ -31,7 +31,7 @@ def extract_frame_lines(polylines):
     for polyline in polylines:
       if polyline[0] == i:
         frame.append(polyline[1])
-    frames.append(frame)
+    frames.append(sorted(frame))
   
   return frames
 
@@ -98,7 +98,7 @@ def draw_polylines(frame, polylines):
   for polyline in polylines:
     polyline = np.array(polyline)
     x, y = polyline.T[0], polyline.T[1]
-    frame = cv2.polylines(frame, np.int32([polyline]), False, (0, 0, 255))
+    frame = cv2.polylines(frame, np.int32([polyline]), False, (51, 153, 255), 2)
   return frame
 
 # converts current annotations to new resolution
@@ -117,7 +117,7 @@ def convert_annotations(old_res, new_res, annotations):
         new_polyline.append((new_x,new_y))
       new_polylines.append(new_polyline)
     new_annotations.append(new_polylines)
-  return np.array(new_annotations)
+  return np.array(new_annotations, dtype=object)
 
 
 # TODO: polylines' number of points need to be the same (for example 4, 6 might be better)

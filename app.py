@@ -95,7 +95,6 @@ while True:
 
       # display road edges (NOTE: ground truth for now, use network output later)
       polylines = annotations[idx]
-      #frames[1] = draw_polylines(cv2.resize(frames[1], (W,H)), polylines)
       frames[1] = draw_polylines(frames[1], polylines)
 
 
