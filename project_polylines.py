@@ -98,7 +98,7 @@ def draw_polylines(frame, polylines):
   for polyline in polylines:
     polyline = np.array(polyline)
     x, y = polyline.T[0], polyline.T[1]
-    frame = cv2.polylines(frame, np.int32([polyline]), False, (51, 153, 255), 2)
+    frame = cv2.polylines(frame, np.int32([polyline]), False, (0, 0, 255), 2)
   return frame
 
 # converts current annotations to new resolution
