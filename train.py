@@ -64,7 +64,7 @@ def train(frames, labels, model):
     for i in t:
       # get data into network
       rng = np.random.default_rng()
-      samp = rng.choice((frames), size=BS, replace=False)
+      samp = rng.choice(len(frames), size=BS, replace=False)
       visited_idx = np.concatenate((visited_idx, samp)) # add the new random values to visited indices
 
       # TODO: we must not sample the same frames in the same epoch (use visited_idx)
