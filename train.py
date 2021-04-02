@@ -135,8 +135,8 @@ def evaluate(model, X_test, Y_test):
 
 # save model
 def save_model(model, path):
-  torch.save(model.state_dict(), model_path)
-  print("Model saved to path", model_path)
+  torch.save(model.state_dict(), path)
+  print("Model saved to path", path)
 
 # load the model
 def load_model(path):
@@ -144,6 +144,7 @@ def load_model(path):
   model.load_state_dict(torch.load(path))
   model.train()  # for training on new dataset
   #model.eval()  # for evaluation/deployment
+  print("Loaded model from", path)
   return model
 
 
