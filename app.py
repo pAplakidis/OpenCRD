@@ -31,6 +31,7 @@ print(device)
 #eval_path = "data/videos/with_crossroads/city_4.mp4"
 eval_path = sys.argv[1]
 log_path = eval_path[:-4] + ".txt"
+annot_path = eval_path[:-4] + "_annotations.xml"
 
 try:
   with open(log_path, "r") as log_file:
@@ -40,7 +41,7 @@ except FileNotFoundError:
   eval_labels = None
 
 # load Crossroad detector model (TODO: when we use multitask learning later, we will get all drawable data just from the model's output, for now we just do it separately)
-model_path = "models/cr_detector.pth"
+model_path = "models/cr_detector.pth" # CHANGE THIS
 model = load_model(model_path).to(device)
 model.eval()
 
@@ -48,11 +49,14 @@ model.eval()
 x = torch.ones(2, 1).to(device)
 y = torch.zeros(2, 1).to(device)
 
-# get polylines (TODO: this is temporary)
-annotations_file = sys.argv[2]
-polylines = extract_polylines(annotations_file)
-annotations = extract_frame_lines(polylines)
-annotations = convert_annotations((annot_W,annot_H), (disp_W,disp_H), annotations)  # convert the 480x320 lines to display resolution
+# get polylines
+try:
+  #annot_path = sys.argv[2]
+  polylines = extract_polylines(annot_path)
+  annotations = extract_frame_lines(polylines)
+  annotations = convert_annotations((annot_W,annot_H), (disp_W,disp_H), annotations)  # convert the 480x320 lines to display resolution
+except FileNotFoundError:
+  annotations = None
 # TODO: need to convert them to 320x160 later on if we are going to use them on a multitask network and then convert them again to display resolution so that we display on HD
 
 cap = cv2.VideoCapture(eval_path)
@@ -94,8 +98,9 @@ while True:
       frames[1] = cv2.resize(frames[1], (disp_W,disp_H))
 
       # display road edges (NOTE: ground truth for now, use network output later)
-      polylines = annotations[idx]
-      frames[1] = draw_polylines(frames[1], polylines)
+      if annotations is not None:
+        polylines = annotations[idx]
+        frames[1] = draw_polylines(frames[1], polylines)
 
 
       # display category text
