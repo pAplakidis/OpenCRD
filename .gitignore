@@ -2,4 +2,6 @@ data/
 __pycache__/
 .*.swp
 .ipynb_checkpoints/
+models/re_detector.pth
+models/re_detector_nonrandom_big.pth
 

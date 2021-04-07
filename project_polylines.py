@@ -94,11 +94,11 @@ def display(video_file, annotations):
   cap.release()
   cv2.destroyAllWindows()
 
-def draw_polylines(frame, polylines):
+def draw_polylines(frame, polylines, color=(0, 0, 255)):
   for polyline in polylines:
     polyline = np.array(polyline)
     x, y = polyline.T[0], polyline.T[1]
-    frame = cv2.polylines(frame, np.int32([polyline]), False, (0, 0, 255), 2)
+    frame = cv2.polylines(frame, np.int32([polyline]), False, color, 2)
   return frame
 
 # converts current annotations to new resolution
@@ -119,6 +119,77 @@ def convert_annotations(old_res, new_res, annotations):
     new_annotations.append(new_polylines)
   return np.array(new_annotations, dtype=object)
 
+# converts predicted polylines to new resolution
+# TODO: this might be buggy (check the shape of polylines on old and new resolutions)
+def convert_polylines(old_res, new_res, polylines):
+  W, H = old_res
+  new_W, new_H = new_res
+  new_polylines = []
+  for polyline in polylines:
+    new_polyline = []
+    for point in polyline:
+      x, y = point
+      new_x = (x*new_W) / W
+      new_y = (y*new_H) / H
+      new_polyline.append((new_x,new_y))
+    new_polylines.append(new_polyline)
+  return np.array(new_polylines)
+
+# TODO: this algorithm has bad complexity (O(n^3)), refactor if possible
+# convert polylines per frame to net output vector (flattens the array)
+def serialize_polylines(polylines, n_coords, n_points, max_n_lines):
+  # check if we have more than n_points
+  # TODO: instead of removing the whole line, just get polyline[:n_points]
+  for polyline in polylines:
+    if len(polyline) != n_points:
+      polylines.remove(polyline)
+  assert len(polylines) <= max_n_lines, "More than max number of lines found"
+
+  # fill the gaps with negative values (-1 == NULL => out of bounds)
+  if len(polylines) < max_n_lines:
+    for i in range(max_n_lines - len(polylines)):
+      new_polyline = []
+      for j in range(n_points):
+        point = []
+        for k in range(n_coords):
+          point.append(-1.0)
+        new_polyline.append(point)
+      polylines.append(new_polyline)
+      
+  # flatten
+  ret = []
+  for i in range(max_n_lines):
+    for j in range(n_points):
+      for k in range(n_coords):
+        ret.append(polylines[i][j][k])
+
+  return np.array(ret)
+
+# TODO: this needs more work depending on the net output, since it is tested only on annotations
+# convert network output vector to polylines per frame
+def deserialize_polylines(net_output, n_coords, n_points, max_n_lines):
+  polylines = []
+  point = []
+  line = []
+  for i in range(len(net_output)):
+    point.append(net_output[i])
+    if len(point) == 2:
+      line.append(point)
+      point = []
+    if len(line) == 4:
+      polylines.append(line)
+      line = []
+
+  # remove (-1, -1)/out-of-bounds points from lines
+  for polyline in polylines:
+    while [-1., -1.] in polyline:
+      polyline.remove([-1., -1.]) # TODO: remove all negative numbers, not just (-1., -1.) pairs
+
+  # remove empty lists
+  while [] in polylines:
+    polylines.remove([])
+
+  return np.array(polylines)
 
 # TODO: polylines' number of points need to be the same (for example 4, 6 might be better)
 if __name__ == '__main__':

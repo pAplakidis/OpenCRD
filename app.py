@@ -9,8 +9,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from train import load_model
-from model import CRDetector
-from project_polylines import extract_polylines, extract_frame_lines, draw_polylines, convert_annotations
+from model import CRDetector, REDetector
+from project_polylines import *
 
 # neural network input resolutions
 W = 320
@@ -41,9 +41,15 @@ except FileNotFoundError:
   eval_labels = None
 
 # load Crossroad detector model (TODO: when we use multitask learning later, we will get all drawable data just from the model's output, for now we just do it separately)
-model_path = "models/cr_detector.pth" # CHANGE THIS
-model = load_model(model_path).to(device)
-model.eval()
+cr_model_path = "models/cr_detector.pth" # CHANGE THIS
+cr_model = CRDetector()
+cr_model = load_model(cr_model_path, cr_model).to(device)
+cr_model.eval()
+
+re_model_path = "models/re_detector.pth" # CHANGE THIS
+re_model = REDetector()
+re_model = load_model(re_model_path, re_model).to(device)
+re_model.eval()
 
 # for rounding up to a threshold instead of 0.5 (works with torch.where)
 x = torch.ones(2, 1).to(device)
@@ -57,7 +63,6 @@ try:
   annotations = convert_annotations((annot_W,annot_H), (disp_W,disp_H), annotations)  # convert the 480x320 lines to display resolution
 except FileNotFoundError:
   annotations = None
-# TODO: need to convert them to 320x160 later on if we are going to use them on a multitask network and then convert them again to display resolution so that we display on HD
 
 cap = cv2.VideoCapture(eval_path)
 idx = 0
@@ -76,10 +81,10 @@ while True:
       frame2 = cv2.resize(cv2.cvtColor(frames[1], cv2.COLOR_BGR2RGB), (W,H))
       print("Frame:", idx)
       if eval_labels:
-        print("[+] Ground Truth:", eval_labels[idx], "->", LABEL_DICT[int(eval_labels[idx])])
+        print("[+] CR_Detection Ground Truth:", eval_labels[idx], "->", LABEL_DICT[int(eval_labels[idx])])
       
       # NOTE: this part handles the network's outputs
-      # forward to model
+      # forward to model(s)
       X_test1 = np.moveaxis(frame1, -1, 0)
       X_test2 = np.moveaxis(frame2, -1, 0)
       X_test = []
@@ -87,21 +92,30 @@ while True:
       X_test.append(X_test2)
       X_test = np.array(X_test)
       X = torch.tensor(X_test).float().to(device)
-      Y_pred = model(X)
-      print("[~] Predicted value:", Y_pred[1].item())
+
+      Y_pred = cr_model(X)
+      print("[~] Predicted value for cr_detection:", Y_pred[1].item())
       cat = torch.where(Y_pred >= 0.8, x, y)
       #pred = LABEL_DICT[int(torch.round(Y_pred[1]).item())]  # round to threshold 0.5
       pred = LABEL_DICT[int(cat[1].item())]                   # round to custom threshold (e.g. 0.8)
       conf = Y_pred[1].item()
 
+      Y_pred1 = re_model(X)
+      print("[~] Predicted value for re_detection")
+      print(Y_pred1[1])
+      road_edges = deserialize_polylines(Y_pred1[1].cpu().detach().numpy(), re_model.n_coords, re_model.n_points, re_model.max_n_lines)
+      road_edges = convert_polylines((W,H), (disp_W,disp_H), road_edges)  # convert the 320x160 lines to display resolution
+
       # NOTE: the rest is just display code
       frames[1] = cv2.resize(frames[1], (disp_W,disp_H))
 
-      # display road edges (NOTE: ground truth for now, use network output later)
+      # display groud-truth road edges
       if annotations is not None:
         polylines = annotations[idx]
         frames[1] = draw_polylines(frames[1], polylines)
 
+      # draw predicted road edges
+      frames[1] = draw_polylines(frames[1], road_edges, color=(0, 128, 255))
 
       # display category text
       font = cv2.FONT_HERSHEY_SIMPLEX 

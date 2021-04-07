@@ -139,8 +139,7 @@ def save_model(model, path):
   print("Model saved to path", path)
 
 # load the model
-def load_model(path):
-  model = CRDetector()
+def load_model(path, model):
   model.load_state_dict(torch.load(path))
   model.train()  # for training on new dataset
   #model.eval()  # for evaluation/deployment
