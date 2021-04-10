@@ -47,7 +47,7 @@ cr_model = load_model(cr_model_path, cr_model).to(device)
 cr_model.eval()
 
 re_model_path = "models/re_detector.pth" # CHANGE THIS
-re_model = REDetector()
+re_model = REDetector() # TODO: change the model to the new ResNet architecture
 re_model = load_model(re_model_path, re_model).to(device)
 re_model.eval()
 
