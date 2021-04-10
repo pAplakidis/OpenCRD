@@ -9,7 +9,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from train import load_model
-from model import CRDetector, REDetector
+from model import *
 from project_polylines import *
 
 # neural network input resolutions
@@ -41,15 +41,19 @@ except FileNotFoundError:
   eval_labels = None
 
 # load Crossroad detector model (TODO: when we use multitask learning later, we will get all drawable data just from the model's output, for now we just do it separately)
-cr_model_path = "models/cr_detector.pth" # CHANGE THIS
-cr_model = CRDetector()
+#cr_model_path = "models/cr_detector.pth" # CHANGE THIS
+cr_model_path = "models/resnet_cr_detector.pth" # CHANGE THIS
+#cr_model = CRDetector()
+cr_model = ResCRDetector(18, ResBlock, image_channels=3)
 cr_model = load_model(cr_model_path, cr_model).to(device)
 cr_model.eval()
 
+"""
 re_model_path = "models/re_detector.pth" # CHANGE THIS
 re_model = REDetector() # TODO: change the model to the new ResNet architecture
 re_model = load_model(re_model_path, re_model).to(device)
 re_model.eval()
+"""
 
 # for rounding up to a threshold instead of 0.5 (works with torch.where)
 x = torch.ones(2, 1).to(device)
@@ -100,11 +104,13 @@ while True:
       pred = LABEL_DICT[int(cat[1].item())]                   # round to custom threshold (e.g. 0.8)
       conf = Y_pred[1].item()
 
+      """
       Y_pred1 = re_model(X)
       print("[~] Predicted value for re_detection")
       print(Y_pred1[1])
       road_edges = deserialize_polylines(Y_pred1[1].cpu().detach().numpy(), re_model.n_coords, re_model.n_points, re_model.max_n_lines)
       road_edges = convert_polylines((W,H), (disp_W,disp_H), road_edges)  # convert the 320x160 lines to display resolution
+      """
 
       # NOTE: the rest is just display code
       frames[1] = cv2.resize(frames[1], (disp_W,disp_H))
@@ -115,7 +121,7 @@ while True:
         frames[1] = draw_polylines(frames[1], polylines)
 
       # draw predicted road edges
-      frames[1] = draw_polylines(frames[1], road_edges, color=(0, 128, 255))
+      #frames[1] = draw_polylines(frames[1], road_edges, color=(0, 128, 255))
 
       # display category text
       font = cv2.FONT_HERSHEY_SIMPLEX 
