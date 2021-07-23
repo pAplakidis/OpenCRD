@@ -42,7 +42,7 @@ except FileNotFoundError:
 
 # load Crossroad detector model (TODO: when we use multitask learning later, we will get all drawable data just from the model's output, for now we just do it separately)
 #cr_model_path = "models/cr_detector.pth" # CHANGE THIS
-cr_model_path = "models/resnet_cr_detector.pth" # CHANGE THIS
+cr_model_path = "models/resnet_cr_detector_local.pth" # CHANGE THIS
 #cr_model = CRDetector()
 cr_model = ResCRDetector(18, ResBlock, image_channels=3)
 cr_model = load_model(cr_model_path, cr_model).to(device)
