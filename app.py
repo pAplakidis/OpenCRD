@@ -49,7 +49,7 @@ cr_model = load_model(cr_model_path, cr_model).to(device)
 cr_model.eval()
 
 #re_model_path = "models/re_detector.pth" # CHANGE THIS
-re_model_path = "models/re_detector_bayesian.pth" # CHANGE THIS
+re_model_path = "models/re_detector_bayesian_local.pth" # CHANGE THIS
 #re_model = REDetector()
 re_model = ResREDetector(18, ResBlock, image_channels=3)
 re_model = load_model(re_model_path, re_model).to(device)
