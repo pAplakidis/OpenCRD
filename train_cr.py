@@ -7,7 +7,8 @@
 import numpy as np
 import cv2
 import pims
-from tqdm.notebook import trange
+from tqdm import trange
+from os import listdir
 
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import plot
@@ -16,15 +17,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-print(device)
-
-
-# In[2]:
-
-
 #resolution and labels
-
 # TESLA resolution
 #W = 1280
 #H = 960
@@ -40,12 +33,6 @@ W = 320
 H = 160
 
 LABEL_DICT = {0: "no crossroad", 1: "crossroad"}  # NOTE: no need to change this for 2 classes (argmax still gets us the same results)
-
-
-# In[3]:
-
-
-from os import listdir
 
 # Get data from files
 def get_data(video_path, log_path):
@@ -66,32 +53,6 @@ def get_data(video_path, log_path):
 
   return frames, np.array(labels).astype(np.float)
 
-video_path = "../data/videos/usable/city_1.mp4"  # CHANGE THIS
-log_path = video_path[:-3] + "txt"
-#log_path = video_path[:-3] + "log"
-
-frames, labels = get_data(video_path, log_path)
-print(labels)
-
-# get all files to train model on all of them at once
-base_dir = "../data/videos/usable/"
-video_files = []
-log_files = []
-for f in listdir(base_dir):
-  if f.endswith(".mp4"):
-    video_files.append(f)
-  elif f.endswith(".txt"):
-    log_files.append(f)
-video_files, log_files = sorted(video_files), sorted(log_files)
-print(video_files)
-print(log_files)
-
-assert len(video_files) == len(log_files)
-
-
-# In[4]:
-
-
 # make pims video into actual numpy frames
 def conv_frames(frames):
   imgs = []
@@ -101,13 +62,9 @@ def conv_frames(frames):
   print("Frames converted to numpy arrays")
   return np.array(imgs)
 
-#imgs = conv_frames(frames)
-#cv2_imshow(imgs[800])
 
-
-# In[6]:
-
-
+#-----------------------------------------------------------------------------------
+# Old model
 class ConvNet(nn.Module):
   def __init__(self):
     super(ConvNet, self).__init__()
@@ -146,8 +103,7 @@ class ConvNet(nn.Module):
       num_features *= s
     return num_features
 
-
-# In[7]:
+#-----------------------------------------------------------------------------------
 
 
 # ResNet block
@@ -268,9 +224,6 @@ class ResCRDetector(nn.Module):
     return num_features
 
 
-# In[10]:
-
-
 # train the network
 def train(frames, labels, model):
   loss_function = nn.BCELoss()  # for binary classification
@@ -332,35 +285,6 @@ def train(frames, labels, model):
 
   return model
 
-if device.type == "cuda":
-  torch.cuda.empty_cache()  # to avoid running out of cuda memory
-  print("[~] Cleared cuda cache")
-
-# train for all files
-#model = ConvNet().to(device).train() # Uncomment this if you want to train from the start, else just run the loader block first
-model = ResCRDetector(18, ResBlock, image_channels=3).to(device).train()
-
-# TODO: check for oversampling (more 0s than 1s)
-# get all frames and labels and stich them in the same array, then train the network on the whole dataset
-for i in trange(len(video_files)):
-  print("[~] Loading from files: %s , %s" % (base_dir+video_files[i], base_dir+log_files[i]))
-  frames, labels = get_data(base_dir+video_files[i], base_dir+log_files[i])
-  frames = conv_frames(frames)
-  if i == 0:
-    all_frames = frames
-    all_labels = labels
-  else:
-    all_frames = np.concatenate((all_frames, frames), axis=0)
-    all_labels = np.concatenate((all_labels, labels), axis=0)
-
-frames, labels = [], [] # free up memory
-print("[+] Training model ...")
-model = train(all_frames, all_labels, model)
-print("[+] Trained model on all data files")
-
-
-# In[ ]:
-
 
 # evaluate model
 def evaluate(model, X_test, Y_test):
@@ -392,80 +316,116 @@ def evaluate(model, X_test, Y_test):
   plt.ylim(-0.1, 1.1)
   plot(accuracies)
 
-eval_video_path = "../data/videos/usable/city_1.mp4"  # CHANGE THIS
 
-model.eval()
-frames, labels = get_data(base_dir+video_files[i], base_dir+log_files[i])
-frames = conv_frames(frames)
-print(frames.shape)
-print(labels.shape)
-evaluate(model, frames, labels)
+if __name__ == '__main__':
+  device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+  print(device)
+
+  """
+  video_path = "../data/videos/usable/city_1.mp4"  # CHANGE THIS
+  log_path = video_path[:-3] + "txt"
+  #log_path = video_path[:-3] + "log"
+
+  frames, labels = get_data(video_path, log_path)
+  print(labels)
+  """
+
+  # get all files to train model on all of them at once
+  base_dir = "../data/videos/usable/"
+  video_files = []
+  log_files = []
+  for f in listdir(base_dir):
+    if f.endswith(".mp4"):
+      video_files.append(f)
+    elif f.endswith(".txt"):
+      log_files.append(f)
+  video_files, log_files = sorted(video_files), sorted(log_files)
+  print(video_files)
+  print(log_files)
+
+  assert len(video_files) == len(log_files)
+
+  # train for all files
+  #model = ConvNet().to(device).train() # Uncomment this if you want to train from the start, else just run the loader block first
+  model = ResCRDetector(18, ResBlock, image_channels=3).to(device).train()
+
+  # TODO: check for oversampling (more 0s than 1s)
+  # get all frames and labels and stich them in the same array, then train the network on the whole dataset
+  for i in trange(len(video_files)):
+    print("[~] Loading from files: %s , %s" % (base_dir+video_files[i], base_dir+log_files[i]))
+    frames, labels = get_data(base_dir+video_files[i], base_dir+log_files[i])
+    frames = conv_frames(frames)
+    if i == 0:
+      all_frames = frames
+      all_labels = labels
+    else:
+      all_frames = np.concatenate((all_frames, frames), axis=0)
+      all_labels = np.concatenate((all_labels, labels), axis=0)
+
+  frames, labels = [], [] # free up memory
+  print("[+] Training model ...")
+  model = train(all_frames, all_labels, model)
+  print("[+] Trained model on all data files")
+
+  # save model for later retraining
+  # TODO: make this a function
+  model_path = "../models/resnet_cr_detector_local.pth"
+  torch.save(model.state_dict(), model_path)
+  print("Model saved to path", model_path)
+
+  """
+  # load the model
+  model_path = "../models/resnet_cr_detector_local.pth"
+  #model = ConvNet()
+  model = ResCRDetector(18, ResBlock, image_channels=3)
+  model.load_state_dict(torch.load(model_path))
+  model.train()  # for training on new dataset
+  #model.eval()  # for evaluation
+  model.to(device)
+  """
+
+  """
+  eval_video_path = "../data/videos/usable/city_1.mp4"  # CHANGE THIS
+
+  model.eval()
+  frames, labels = get_data(base_dir+video_files[i], base_dir+log_files[i])
+  frames = conv_frames(frames)
+  print(frames.shape)
+  print(labels.shape)
+  evaluate(model, frames, labels)
 
 
-# In[11]:
+  eval_path = "/content/drive/MyDrive/OpenCRD_dataset/city_4.mp4"
+  log_path = eval_path[:-4] + ".txt"
 
+  with open(log_path, "r") as log_file:
+    eval_labels = log_file.read().split("\n")[:-1]
+    log_file.close()
 
-# save model for later retraining
-model_path = "../models/resnet_cr_detector_local.pth"
-torch.save(model.state_dict(), model_path)
-print("Model saved to path", model_path)
+  frames = pims.Video(eval_path, format="mp4")
+  idx = 1000
 
+  frame1 = cv2.resize(cv2.cvtColor(frames[idx], cv2.COLOR_BGR2RGB), (W,H))
+  frame2 = cv2.resize(cv2.cvtColor(frames[idx+1], cv2.COLOR_BGR2RGB), (W,H))
+  cv2_imshow(frame1)
+  cv2_imshow(frame2)
+  print("Frame:", idx)
+  print("[+]", eval_labels[idx], "->", LABEL_DICT[int(eval_labels[idx])])
+  print("Frame:", idx+1)
+  print("[+]", eval_labels[idx+1], "->", LABEL_DICT[int(eval_labels[idx+1])])
+      
+  # forward to model
+  # NOTE: since we are using batch normalization, we need more than 1 images
+  X_test1 = np.moveaxis(frame1, -1, 0)
+  X_test2 = np.moveaxis(frame2, -1, 0)
+  X_test = []
+  X_test.append(X_test1)
+  X_test.append(X_test2)
+  X_test = np.array(X_test)
+  X = torch.tensor(X_test).float().to(device)
 
-# In[13]:
-
-
-# load the model
-#model_path = "/content/drive/MyDrive/OpenCRD_dataset/models/cr_detector.pth"
-model_path = "/content/drive/MyDrive/OpenCRD_dataset/models/resnet_cr_detector.pth"
-#model = ConvNet()
-model = ResCRDetector(18, ResBlock, image_channels=3)
-model.load_state_dict(torch.load(model_path))
-model.train()  # for training on new dataset
-#model.eval()  # for evaluation
-model.to(device)
-
-
-# In[14]:
-
-
-from google.colab.patches import cv2_imshow
-
-eval_path = "/content/drive/MyDrive/OpenCRD_dataset/city_4.mp4"
-log_path = eval_path[:-4] + ".txt"
-
-with open(log_path, "r") as log_file:
-  eval_labels = log_file.read().split("\n")[:-1]
-  log_file.close()
-
-frames = pims.Video(eval_path, format="mp4")
-idx = 1000
-
-frame1 = cv2.resize(cv2.cvtColor(frames[idx], cv2.COLOR_BGR2RGB), (W,H))
-frame2 = cv2.resize(cv2.cvtColor(frames[idx+1], cv2.COLOR_BGR2RGB), (W,H))
-cv2_imshow(frame1)
-cv2_imshow(frame2)
-print("Frame:", idx)
-print("[+]", eval_labels[idx], "->", LABEL_DICT[int(eval_labels[idx])])
-print("Frame:", idx+1)
-print("[+]", eval_labels[idx+1], "->", LABEL_DICT[int(eval_labels[idx+1])])
-    
-# forward to model
-# NOTE: since we are using batch normalization, we need more than 1 images
-X_test1 = np.moveaxis(frame1, -1, 0)
-X_test2 = np.moveaxis(frame2, -1, 0)
-X_test = []
-X_test.append(X_test1)
-X_test.append(X_test2)
-X_test = np.array(X_test)
-X = torch.tensor(X_test).float().to(device)
-
-model.eval()
-Y_pred = model(X)
-print(Y_pred)
-
-
-# In[ ]:
-
-
-
+  model.eval()
+  Y_pred = model(X)
+  print(Y_pred)
+  """
 
