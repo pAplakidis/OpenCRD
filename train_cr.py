@@ -321,8 +321,11 @@ if __name__ == '__main__':
   device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
   print(device)
 
+  base_dir = "data/videos/usable/"
+  model_path = "models/resnet_cr_detector_local.pth"
+
   """
-  video_path = "../data/videos/usable/city_1.mp4"  # CHANGE THIS
+  video_path = "data/videos/usable/city_1.mp4"  # CHANGE THIS
   log_path = video_path[:-3] + "txt"
   #log_path = video_path[:-3] + "log"
 
@@ -331,7 +334,6 @@ if __name__ == '__main__':
   """
 
   # get all files to train model on all of them at once
-  base_dir = "../data/videos/usable/"
   video_files = []
   log_files = []
   for f in listdir(base_dir):
@@ -369,13 +371,11 @@ if __name__ == '__main__':
 
   # save model for later retraining
   # TODO: make this a function
-  model_path = "../models/resnet_cr_detector_local.pth"
   torch.save(model.state_dict(), model_path)
   print("Model saved to path", model_path)
 
   """
   # load the model
-  model_path = "../models/resnet_cr_detector_local.pth"
   #model = ConvNet()
   model = ResCRDetector(18, ResBlock, image_channels=3)
   model.load_state_dict(torch.load(model_path))
