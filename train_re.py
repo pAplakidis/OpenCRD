@@ -3,7 +3,7 @@ import numpy as np
 import cv2
 import pims
 from os import listdir
-from tqdm.notebook import trange
+from tqdm import trange
 import xml.etree.ElementTree as ET
 
 import matplotlib.pyplot as plt
@@ -15,9 +15,6 @@ import torch.nn.functional as F
 from blitz.modules import BayesianLinear
 from blitz.utils import variational_estimator
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-print(device)
-
 # CONSTANTS
 # network input resolution
 W = 320
@@ -26,7 +23,6 @@ H = 160
 # annotations' resolution
 annot_W = 480
 annot_H = 320
-
 
 # DATA FUNCTIONS
 # get polylines from file
@@ -98,26 +94,6 @@ def conv_frames(frames):
   print("Frames converted to numpy arrays")
   return np.array(imgs)
 
-base_dir = "../data/videos/usable/"
-video_files = []
-annot_files = []
-for f in listdir(base_dir):
-  if f.endswith(".mp4"):
-    video_files.append(f)
-  elif f.endswith(".xml"):
-    annot_files.append(f)
-video_files, annot_files = sorted(video_files), sorted(annot_files)
-
-video_files = video_files[:3] # TODO: this is a temp hack, need to get all videos' annotations
-print(video_files)
-print(annot_files)
-
-assert len(video_files) == len(annot_files), "Number of video files != number of annotation files"
-
-
-# In[4]:
-
-
 # ANNOTATIONS TRANSFORMATIONS
 
 # TODO: this algorithm has bad complexity (O(n^3)), refactor if possible
@@ -177,34 +153,8 @@ def deserialize_polylines(net_output, n_coords, n_points, max_n_lines):
 
   return np.array(polylines)
 
-
-# In[ ]:
-
-
-# test the above functions (this will be later used on the training loop for Y_train)
-n_coords = 2  # 2 coordinates: x,y
-n_points = 4  # number of points of each polyline
-max_n_lines = 6 # max number of polylines per frame
-
-frames, annotations = get_data(base_dir+video_files[2], base_dir+annot_files[2])
-
-idx = 0
-for polylines in annotations:
-  ret = serialize_polylines(polylines, n_coords, n_points, max_n_lines)
-  print("++++++++++")
-  print("Frame", idx)
-  print(ret)
-  print("==========")
-  new_polylines = deserialize_polylines(ret, n_coords, n_points, max_n_lines)
-  print(new_polylines)
-  idx += 1
-
-
-# In[ ]:
-
-
-# OLD TESTS
-
+#------------------------------------------------------------------------------------------------
+# OLD MODEL
 # model for road edge detection
 class REDetector(nn.Module):
   def __init__(self):
@@ -363,13 +313,10 @@ class REDetector(nn.Module):
     for s in size:
       num_features *= s
     return num_features
-
-
-# In[5]:
+#------------------------------------------------------------------------------------------------
 
 
 # PYTOCH MODEL
-
 # ResNet block
 class ResBlock(nn.Module):
   def __init__(self, num_layers, in_channels, out_channels, identity_downsample=None, stride=1):
@@ -523,20 +470,10 @@ class ResREDetector(nn.Module):
       num_features *= s
     return num_features
 
-
-# In[6]:
-
-
-# CUSTOM LOSSES
-
 # negative log likelihood loss
 def neg_log_likelihood(output, target, sigma=1.0):
   dist = torch.distributions.normal.Normal(output, sigma)
   return torch.sum(-dist.log_prob(target))
-
-
-# In[7]:
-
 
 # TRAINING PROCESS
 def train(frames, annotations, model):
@@ -621,54 +558,14 @@ def train(frames, annotations, model):
   #print(out)
   return model
 
-if device.type == "cuda":
-  torch.cuda.empty_cache()  # to avoid running out of cuda memory
-  print("[~] Cleared cuda cache")
-
-#model = REDetector().to(device).train()
-model = ResREDetector(18, ResBlock, image_channels=3).to(device).train()
-
-# TODO: check if we can overfit a small part of the data (if not,model_path = "../models/re_detector_bayesian_local.pth"
- then need more layers)
-# NOTE: network might be bad cause of data (sometimes polylines[0] is not left road edge, which causes outliers)
-for i in trange(0, len(video_files)):
-  print("[~] Loading from files: %s , %s" % (base_dir+video_files[i], base_dir+annot_files[i]))
-  frames, annotations = get_data(base_dir+video_files[i], base_dir+annot_files[i])
-  frames = conv_frames(frames)  # TODO: convert all input videos to 320*160 so we don't have to waste time downscaling frames
-  if i == 0:
-    all_frames = frames
-    all_annotations = annotations
-  else:
-    all_frames = np.concatenate((all_frames, frames), axis=0)
-    all_annotations = np.concatenate((all_annotations, annotations), axis=0)
-
-frames, labels = [], [] # free up memory
-print("[+] Training model ...")
-model = train(all_frames, all_annotations[:-1], model)
-print("[+] Trained model on all data files")
-
-
-# In[ ]:
-
-
- # TODO: evaluate model
+# TODO: evaluate model
 def evalutate(mode, X_test, Y_test):
   pass
-
-
-# In[8]:
-
 
 # save model for later retraining
 def save_model(path, model):
   torch.save(model.state_dict(), path)
   print("Model saved to path", path)
-model_path = "../models/re_detector_bayesian_local.pth"
-save_model(model_path, model)
-
-
-# In[ ]:
-
 
 # load model
 def load_model(path):
@@ -679,16 +576,6 @@ def load_model(path):
   model.eval()
   print("Loaded model from", path)
   return model
-model_path = "../models/re_detector_bayesian_local.pth"
-model = load_model(model_path).to(device)
-print(model)
-
-
-# In[ ]:
-
-
-# DEPLOYMENT TEST
-from google.colab.patches import cv2_imshow
 
 # TODO: different colors for predicted and ground truth
 def draw_polylines(frame, polylines):
@@ -698,52 +585,115 @@ def draw_polylines(frame, polylines):
     frame = cv2.polylines(frame, np.int32([polyline]), False, (0, 0, 255), 2)
   return frame
 
-eval_path = "/content/drive/MyDrive/OpenCRD_dataset/city_1.mp4"
-annot_path = eval_path[:-4] + "_annotations.xml"
 
-frames, annotations = get_data(eval_path, annot_path)
-idx = 500
+if __name__ == '__main__':
+  device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+  print(device)
 
-n_coords, n_points, max_n_lines = model.n_coords, model.n_points, model.max_n_lines
-frame1 = cv2.resize(cv2.cvtColor(frames[idx], cv2.COLOR_BGR2RGB), (W,H))
-frame2 = cv2.resize(cv2.cvtColor(frames[idx+1], cv2.COLOR_BGR2RGB), (W,H))
-eval_frame1 = cv2.resize(cv2.cvtColor(frames[idx], cv2.COLOR_BGR2RGB), (W,H))
-eval_frame2 = cv2.resize(cv2.cvtColor(frames[idx+1], cv2.COLOR_BGR2RGB), (W,H))
-cv2_imshow(draw_polylines(frame1, annotations[idx]))
-cv2_imshow(draw_polylines(frame2, annotations[idx+1]))
-print('============================================')
-cv2_imshow(draw_polylines(frame1, deserialize_polylines(serialize_polylines(annotations[idx], n_coords, n_points, max_n_lines), n_coords, n_points, max_n_lines)))
-cv2_imshow(draw_polylines(frame2, deserialize_polylines(serialize_polylines(annotations[idx+1], n_coords, n_points, max_n_lines), n_coords, n_points, max_n_lines)))
-print("Frame:", idx)
-print("Polylines:", annotations[idx])
-print("Frame:", idx+1)
-print("Polylines:", annotations[idx+1])
+  base_dir = "data/videos/usable/"
+  model_path = "models/re_detector_bayesian_local.pth"
 
-# forward to model
-X_test1 = np.moveaxis(frame1, -1, 0)
-X_test2 = np.moveaxis(frame2, -1, 0)
-X_test = []
-X_test.append(X_test1)
-X_test.append(X_test2)
-X_test = np.array(X_test)
-X = torch.tensor(X_test).float().to(device)
+  video_files = []
+  annot_files = []
+  for f in listdir(base_dir):
+    if f.endswith(".mp4"):
+      video_files.append(f)
+    elif f.endswith(".xml"):
+      annot_files.append(f)
+  video_files, annot_files = sorted(video_files), sorted(annot_files)
 
-model.eval()
-Y_pred = model(X)
-print("Frame", idx, "predicted:")
-print(Y_pred[0])
-polylines1 = deserialize_polylines(Y_pred[0].cpu().detach().numpy(), model.n_coords, model.n_points, model.max_n_lines)
-print(polylines1)
-cv2_imshow(draw_polylines(eval_frame1, polylines1))
-print("Frame", idx+1, "predicted:")
-print(Y_pred[1])
-polylines2 = deserialize_polylines(Y_pred[1].cpu().detach().numpy(), model.n_coords, model.n_points, model.max_n_lines)
-print(polylines2)
-cv2_imshow(draw_polylines(eval_frame2, polylines2))
+  video_files = video_files[:3] # TODO: this is a temp hack, need to get all videos' annotations
+  print(video_files)
+  print(annot_files)
 
+  assert len(video_files) == len(annot_files), "Number of video files != number of annotation files"
 
-# In[ ]:
+  """
+  # test polyline functions (this will be later used on the training loop for Y_train)
+  n_coords = 2  # 2 coordinates: x,y
+  n_points = 4  # number of points of each polyline
+  max_n_lines = 6 # max number of polylines per frame
 
+  frames, annotations = get_data(base_dir+video_files[2], base_dir+annot_files[2])
 
+  idx = 0
+  for polylines in annotations:
+    ret = serialize_polylines(polylines, n_coords, n_points, max_n_lines)
+    print("++++++++++")
+    print("Frame", idx)
+    print(ret)
+    print("==========")
+    new_polylines = deserialize_polylines(ret, n_coords, n_points, max_n_lines)
+    print(new_polylines)
+    idx += 1
+  """
 
+  #model = REDetector().to(device).train()
+  model = ResREDetector(18, ResBlock, image_channels=3).to(device).train()
 
+  # TODO: check if we can overfit a small part of the data (if not,model_path = "../models/re_detector_bayesian_local.pth" then need more layers)
+  # NOTE: network might be bad cause of data (sometimes polylines[0] is not left road edge, which causes outliers)
+  for i in trange(0, len(video_files)):
+    print("[~] Loading from files: %s , %s" % (base_dir+video_files[i], base_dir+annot_files[i]))
+    frames, annotations = get_data(base_dir+video_files[i], base_dir+annot_files[i])
+    frames = conv_frames(frames)  # TODO: convert all input videos to 320*160 so we don't have to waste time downscaling frames
+    if i == 0:
+      all_frames = frames
+      all_annotations = annotations
+    else:
+      all_frames = np.concatenate((all_frames, frames), axis=0)
+      all_annotations = np.concatenate((all_annotations, annotations), axis=0)
+
+  frames, labels = [], [] # free up memory
+  print("[+] Training model ...")
+  model = train(all_frames, all_annotations[:-1], model)
+  print("[+] Trained model on all data files")
+
+  save_model(model_path, model)
+  #model = load_model(model_path).to(device)
+  #print(model)
+
+  """
+  eval_path = "/content/drive/MyDrive/OpenCRD_dataset/city_1.mp4"
+  annot_path = eval_path[:-4] + "_annotations.xml"
+
+  frames, annotations = get_data(eval_path, annot_path)
+  idx = 500
+
+  n_coords, n_points, max_n_lines = model.n_coords, model.n_points, model.max_n_lines
+  frame1 = cv2.resize(cv2.cvtColor(frames[idx], cv2.COLOR_BGR2RGB), (W,H))
+  frame2 = cv2.resize(cv2.cvtColor(frames[idx+1], cv2.COLOR_BGR2RGB), (W,H))
+  eval_frame1 = cv2.resize(cv2.cvtColor(frames[idx], cv2.COLOR_BGR2RGB), (W,H))
+  eval_frame2 = cv2.resize(cv2.cvtColor(frames[idx+1], cv2.COLOR_BGR2RGB), (W,H))
+  cv2_imshow(draw_polylines(frame1, annotations[idx]))
+  cv2_imshow(draw_polylines(frame2, annotations[idx+1]))
+  print('============================================')
+  cv2_imshow(draw_polylines(frame1, deserialize_polylines(serialize_polylines(annotations[idx], n_coords, n_points, max_n_lines), n_coords, n_points, max_n_lines)))
+  cv2_imshow(draw_polylines(frame2, deserialize_polylines(serialize_polylines(annotations[idx+1], n_coords, n_points, max_n_lines), n_coords, n_points, max_n_lines)))
+  print("Frame:", idx)
+  print("Polylines:", annotations[idx])
+  print("Frame:", idx+1)
+  print("Polylines:", annotations[idx+1])
+
+  # forward to model
+  X_test1 = np.moveaxis(frame1, -1, 0)
+  X_test2 = np.moveaxis(frame2, -1, 0)
+  X_test = []
+  X_test.append(X_test1)
+  X_test.append(X_test2)
+  X_test = np.array(X_test)
+  X = torch.tensor(X_test).float().to(device)
+
+  model.eval()
+  Y_pred = model(X)
+  print("Frame", idx, "predicted:")
+  print(Y_pred[0])
+  polylines1 = deserialize_polylines(Y_pred[0].cpu().detach().numpy(), model.n_coords, model.n_points, model.max_n_lines)
+  print(polylines1)
+  cv2_imshow(draw_polylines(eval_frame1, polylines1))
+  print("Frame", idx+1, "predicted:")
+  print(Y_pred[1])
+  polylines2 = deserialize_polylines(Y_pred[1].cpu().detach().numpy(), model.n_coords, model.n_points, model.max_n_lines)
+  print(polylines2)
+  cv2_imshow(draw_polylines(eval_frame2, polylines2))
+  """
