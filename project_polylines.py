@@ -135,6 +135,8 @@ def convert_polylines(old_res, new_res, polylines):
     new_polylines.append(new_polyline)
   return np.array(new_polylines)
 
+#TODO: check if this function matches the next one
+"""
 # TODO: this algorithm has bad complexity (O(n^3)), refactor if possible
 # convert polylines per frame to net output vector (flattens the array)
 def serialize_polylines(polylines, n_coords, n_points, max_n_lines):
@@ -152,7 +154,36 @@ def serialize_polylines(polylines, n_coords, n_points, max_n_lines):
       for j in range(n_points):
         point = []
         for k in range(n_coords):
-          point.append(-1.0)
+          point.append(-100.)
+        new_polyline.append(point)
+      polylines.append(new_polyline)
+      
+  # flatten
+  ret = []
+  for i in range(max_n_lines):
+    for j in range(n_points):
+      for k in range(n_coords):
+        ret.append(polylines[i][j][k])
+
+  return np.array(ret)
+"""
+
+def serialize_polylines(polylines, n_coords, n_points, max_n_lines):
+  # check if we have more than n_points
+  # TODO: instead of removing the whole line, just get polyline[:n_points]
+  for polyline in polylines.copy():
+    if len(polyline) != n_points:
+      polylines.remove(polyline)
+  assert len(polylines) <= max_n_lines, "More than max number of lines found"
+
+  # fill the gaps with negative values (-1 or -10 or -100 == NULL => out of bounds)
+  if len(polylines) < max_n_lines:
+    for i in range(max_n_lines - len(polylines)):
+      new_polyline = []
+      for j in range(n_points):
+        point = []
+        for k in range(n_coords):
+          point.append(-100.)
         new_polyline.append(point)
       polylines.append(new_polyline)
       

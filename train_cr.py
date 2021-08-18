@@ -1,9 +1,4 @@
 #!/usr/bin/env python
-# coding: utf-8
-
-# In[9]:
-
-
 import numpy as np
 import cv2
 import pims
@@ -16,6 +11,8 @@ from matplotlib.pyplot import plot
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
+from model import *
 
 #resolution and labels
 # TESLA resolution
@@ -61,168 +58,6 @@ def conv_frames(frames):
     imgs.append(cv2.resize(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB), (W,H)))
   print("Frames converted to numpy arrays")
   return np.array(imgs)
-
-
-#-----------------------------------------------------------------------------------
-# Old model
-class ConvNet(nn.Module):
-  def __init__(self):
-    super(ConvNet, self).__init__()
-
-    # Convolutional Layers
-    self.conv1 = nn.Conv2d(3, 16, 5)
-    self.conv2_bn1 = nn.BatchNorm2d(16)
-    self.pool = nn.MaxPool2d(2, 2)
-    self.conv2 = nn.Conv2d(16, 32, 5)
-    self.conv2_bn2 = nn.BatchNorm2d(32)
-    self.conv3 = nn.Conv2d(32, 64, 5)
-    self.conv2_bn3 = nn.BatchNorm2d(64)
-
-    # Fully connected layers
-    self.fc1 = nn.Linear(64 * 16 * 36, 120)     # for 320x160 image 64 channels
-    self.bn1 = nn.BatchNorm1d(num_features=120)
-    self.fc2 = nn.Linear(120, 84)
-    self.bn2 = nn.BatchNorm1d(num_features=84)
-    self.fc3 = nn.Linear(84, 1)
-
-  def forward(self, x):
-    x = self.pool(F.relu(self.conv2_bn1(self.conv1(x))))
-    x = self.pool(F.relu(self.conv2_bn2(self.conv2(x))))
-    x = self.pool(F.relu(self.conv2_bn3(self.conv3(x))))
-    #print(x.shape)
-    x = x.view(-1, self.num_flat_features(x))
-    x = F.relu(self.bn1(self.fc1(x)))
-    x = F.relu(self.bn2(self.fc2(x)))
-    x = torch.sigmoid(self.fc3(x))
-    return x
-  
-  def num_flat_features(self, x):
-    size = x.size()[1:] # all dimensions except the batch dimension
-    num_features = 1
-    for s in size:
-      num_features *= s
-    return num_features
-
-#-----------------------------------------------------------------------------------
-
-
-# ResNet block
-class ResBlock(nn.Module):
-  def __init__(self, num_layers, in_channels, out_channels, identity_downsample=None, stride=1):
-    super(ResBlock, self).__init__()
-
-    self.num_layers = num_layers
-    if self.num_layers > 34:
-      self.expansion = 4
-    else:
-      self.expansion =1
-
-    # ResNet50, 101 and 152 include additional layer of 1x1 kernels
-    self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=1, padding=0)
-    self.bn1 = nn.BatchNorm2d(out_channels)
-    if self.num_layers > 34:
-      self.conv2 = nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=stride, padding=1)
-    else:
-      # for ResNet18 and 34, connect input directly to 3x3 kernel (skip first 1x1)
-      self.conv2 = nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=stride, padding=1)
-    self.bn2 = nn.BatchNorm2d(out_channels)
-    self.conv3 = nn.Conv2d(out_channels, out_channels*self.expansion, kernel_size=1, stride=1, padding=0)
-    self.bn3 = nn.BatchNorm2d(out_channels*self.expansion)
-    self.elu = nn.ELU()
-    self.identity_downsample = identity_downsample
-
-  def forward(self, x):
-    identity = x
-    if self.num_layers > 34:
-      x = self.elu(self.bn1(self.conv1(x)))
-    x = self.elu(self.bn2(self.conv2(x)))
-    x = self.bn3(self.conv3(x))
-    
-    if self.identity_downsample is not None:
-      identity = self.identity_downsample(identity)
-    x += identity
-    x = self.elu(x)
-    return x
-
-# ResNet model
-class ResCRDetector(nn.Module):
-  def __init__(self, num_layers, block, image_channels):
-    assert num_layers in [18, 34, 50, 101, 152], "Unknown ResNet architecture, number of layers must be 18, 34, 50, 101 or 152"
-    super(ResCRDetector, self).__init__()
-
-    # for output layer (polylines shape)
-    self.n_coords = 2  # 2 coordinates: x,y
-    self.n_points = 4  # number of points of each polyline
-    self.max_n_lines = 6 # max number of polylines per frame
-
-    if num_layers < 50:
-      self.expansion = 1
-    else:
-      self.expansion = 4
-    if num_layers == 18:
-      layers = [2, 2, 2, 2]
-    elif num_layers == 34 or num_layers == 50:
-      layers = [3, 4, 23, 3]
-    elif num_layers == 101:
-      layers = [3, 8, 23, 3]
-    else:
-      layers = [3, 8, 36, 3]
-
-    self.in_channels = 16
-    self.conv1 = nn.Conv2d(image_channels, 16, kernel_size=7, stride=2, padding=3)  # TODO: maybe kernel 5x5
-    self.bn1 = nn.BatchNorm2d(16)
-    self.elu = nn.ELU()
-    self.avgpool1 = nn.AvgPool2d(3, 2, padding=1)
-
-    # ResNet Layers
-    self.layer1 = self.make_layers(num_layers, block, layers[0], intermediate_channels=32, stride=1)
-    self.layer2 = self.make_layers(num_layers, block, layers[1], intermediate_channels=64, stride=2)
-    self.layer3 = self.make_layers(num_layers, block, layers[2], intermediate_channels=128, stride=2)
-    self.layer4 = self.make_layers(num_layers, block, layers[3], intermediate_channels=256, stride=2)
-
-    self.avgpool2 = nn.AvgPool2d(1, 1)
-
-    # Fully Connected Layers
-    self.fc1 = nn.Linear(256*5*10, 1024) # NOTE: this works only with ResNet18
-    self.fc_bn1 = nn.BatchNorm1d(1024)
-    self.fc2 = nn.Linear(1024, 128)
-    self.fc_bn2 = nn.BatchNorm1d(128)
-    self.fc3 = nn.Linear(128, 84)
-    self.fc_bn3 = nn.BatchNorm1d(84)
-    self.fc4 = nn.Linear(84, 1)
-
-  def forward(self, x):
-    x = self.avgpool1(self.elu(self.bn1(self.conv1(x))))
-    x = self.layer1(x)
-    x = self.layer2(x)
-    x = self.layer3(x)
-    x = self.layer4(x)
-    x = self.avgpool2(x)
-    #print(x.shape)
-    x = x.view(-1, self.num_flat_features(x))
-    x = F.relu(self.fc_bn1(self.fc1(x)))
-    x = F.relu(self.fc_bn2(self.fc2(x)))
-    x = F.relu(self.fc_bn3(self.fc3(x)))
-    x = torch.sigmoid(self.fc4(x))
-    return x
-
-  def make_layers(self, num_layers, block, num_residual_blocks, intermediate_channels, stride):
-    layers = []
-    identity_downsample = nn.Sequential(nn.Conv2d(self.in_channels, intermediate_channels*self.expansion, kernel_size=1, stride=stride),
-                                        nn.BatchNorm2d(intermediate_channels*self.expansion))
-    layers.append(block(num_layers, self.in_channels, intermediate_channels, identity_downsample, stride))
-    self.in_channels = intermediate_channels*self.expansion
-    for i in range(num_residual_blocks - 1):
-      layers.append(block(num_layers, self.in_channels, intermediate_channels))
-    return nn.Sequential(*layers)
-
-  def num_flat_features(self, x):
-    size = x.size()[1:]
-    num_features = 1
-    for s in size:
-      num_features *= s
-    return num_features
-
 
 # train the network
 def train(frames, labels, model):
@@ -285,6 +120,11 @@ def train(frames, labels, model):
 
   return model
 
+# save model
+def save_model(model_path, model):
+  torch.save(model.state_dict(), model_path)
+  print("Model saved to path", model_path)
+
 
 # evaluate model
 def evaluate(model, X_test, Y_test):
@@ -322,7 +162,7 @@ if __name__ == '__main__':
   print(device)
 
   base_dir = "data/videos/usable/"
-  model_path = "models/resnet_cr_detector_local.pth"
+  model_path = "models/resnet_cr_detector_test.pth" # CHANGE THIS
 
   """
   video_path = "data/videos/usable/city_1.mp4"  # CHANGE THIS
@@ -370,9 +210,7 @@ if __name__ == '__main__':
   print("[+] Trained model on all data files")
 
   # save model for later retraining
-  # TODO: make this a function
-  torch.save(model.state_dict(), model_path)
-  print("Model saved to path", model_path)
+  save_model(model.state_dict(), model_path)
 
   """
   # load the model
