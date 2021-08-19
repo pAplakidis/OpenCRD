@@ -9,23 +9,9 @@ import xml.etree.ElementTree as ET
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import plot
 
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from blitz.modules import BayesianLinear
-from blitz.utils import variational_estimator
-
+from helpers import *
 from model import *
 from project_polylines import *
-
-# CONSTANTS
-# network input resolution
-W = 320
-H = 160
-
-# annotations' resolution
-annot_W = 480
-annot_H = 320
 
 # DATA FUNCTIONS
 # get training data from path

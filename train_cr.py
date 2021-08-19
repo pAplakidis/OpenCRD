@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import numpy as np
 import cv2
 import pims
@@ -8,10 +8,7 @@ from os import listdir
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import plot
 
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-
+from helpers import *
 from model import *
 
 #resolution and labels
@@ -26,10 +23,6 @@ from model import *
 # low resolutions (to avoid low memory problems)
 #W = 480
 #H = 320
-W = 320
-H = 160
-
-LABEL_DICT = {0: "no crossroad", 1: "crossroad"}  # NOTE: no need to change this for 2 classes (argmax still gets us the same results)
 
 # Get data from files
 def get_data(video_path, log_path):
@@ -49,15 +42,6 @@ def get_data(video_path, log_path):
   print("Done extracting frames")
 
   return frames, np.array(labels).astype(np.float)
-
-# make pims video into actual numpy frames
-def conv_frames(frames):
-  imgs = []
-  print("Getting frames into proper arrays")
-  for frame in frames:
-    imgs.append(cv2.resize(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB), (W,H)))
-  print("Frames converted to numpy arrays")
-  return np.array(imgs)
 
 # train the network
 def train(frames, labels, model):

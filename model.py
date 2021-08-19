@@ -345,8 +345,8 @@ class ComboModel(nn.Module):
     self.avgpool2 = nn.AvgPool2d(1, 1)
 
     # Fully Connected Layers
-    self.cr_head = get_cr_head()
-    self.re_head = get_re_head()
+    self.cr_head = self.get_cr_head()
+    self.re_head = self.get_re_head()
 
   def forward(self, x):
     x = self.avgpool1(self.elu(self.bn1(self.conv1(x))))
@@ -399,6 +399,16 @@ class ComboModel(nn.Module):
                          fc8, bn8, l_relu, fc9)
     return head
 
+  def make_layers(self, num_layers, block, num_residual_blocks, intermediate_channels, stride):
+    layers = []
+    identity_downsample = nn.Sequential(nn.Conv2d(self.in_channels, intermediate_channels*self.expansion, kernel_size=1, stride=stride),
+                                        nn.BatchNorm2d(intermediate_channels*self.expansion))
+    layers.append(block(num_layers, self.in_channels, intermediate_channels, identity_downsample, stride))
+    self.in_channels = intermediate_channels*self.expansion
+    for i in range(num_residual_blocks - 1):
+      layers.append(block(num_layers, self.in_channels, intermediate_channels))
+    return nn.Sequential(*layers)
+
 #----------------------------------------------------------------------------------------------
 
 # Custom Loss functions
@@ -407,4 +417,23 @@ class ComboModel(nn.Module):
 def neg_log_likelihood(output, target, sigma=1.0):
   dist = torch.distributions.normal.Normal(output, sigma)
   return torch.sum(-dist.log_prob(target))
+
+# Loss wrapper for multitask model
+class ComboLoss(nn.Module):
+  def __init__(self, task_num, model):
+    super(ComboLoss, self).__init__()
+    self.task_num = task_num  # TODO: maybe make this constant
+    self.model = model
+    self.log_vars = nn.Parameter(torch.zeros((task_num)))
+
+  def forward(self, preds, cr, re):
+    bce, mse = nn.BCELoss(), nn.MSELoss()
+
+    loss0 = bce(preds[0], cr)
+    precision0 = torch.exp(-self.log_vars[0])
+    loss1 = mse(preds[1], re)
+    precision1 = torch.exp(-self.log_vars[1])
+
+    # TODO: need better multitask loss (weighted sum maybe)
+    return loss0 + loss1
 

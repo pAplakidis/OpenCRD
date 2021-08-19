@@ -168,6 +168,7 @@ def serialize_polylines(polylines, n_coords, n_points, max_n_lines):
   return np.array(ret)
 """
 
+# TODO: this algorithm has bad complexity (O(n^3)), refactor if possible
 def serialize_polylines(polylines, n_coords, n_points, max_n_lines):
   # check if we have more than n_points
   # TODO: instead of removing the whole line, just get polyline[:n_points]
