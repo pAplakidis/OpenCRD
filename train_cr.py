@@ -104,12 +104,6 @@ def train(frames, labels, model):
 
   return model
 
-# save model
-def save_model(model_path, model):
-  torch.save(model.state_dict(), model_path)
-  print("Model saved to path", model_path)
-
-
 # evaluate model
 def evaluate(model, X_test, Y_test):
   # for rounding up to a threshold instead of 0.5 (works with torch.where)

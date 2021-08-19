@@ -8,7 +8,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from train import load_model
 from model import *
 from project_polylines import *
 

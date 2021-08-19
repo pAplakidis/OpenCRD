@@ -42,6 +42,7 @@ def train(frames, labels, annotations, model):
   BS = 32
   
   # TODO: complete this script (check for memory usage!!!)
+  print("[+] Training model ...")
   for epoch in range(epochs):
     for i in (t := trange(0, len(frames)-BS, BS)):
       X_train = []  # frame
@@ -75,6 +76,7 @@ def train(frames, labels, annotations, model):
       # print stats
       exit(0)
 
+  print("[+] Done training!")
   return model
 
 if __name__ == '__main__':
@@ -82,6 +84,8 @@ if __name__ == '__main__':
   print(device)
 
   base_dir = "data/videos/usable/"
+  model_path = "models/combo_model.pth"
+
   video_files = []
   log_files = []
   annot_files = []
@@ -120,9 +124,8 @@ if __name__ == '__main__':
       all_annotations = np.concatenate((all_annotations, annotations), axis=0)
       
   frames, labels = [], []  # free up some memory
-  print("[+] Training model ...")
   model = train(all_frames, all_labels, all_annotations, model)
-  print("[+] Done training!")
 
   # TODO: save model
+  save_model(model_path, model)
 
