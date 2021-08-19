@@ -30,7 +30,7 @@ def get_data(video_path, log_path, annotations_path):
   annotations = extract_frame_lines(annotations)
   annotations = convert_annotations((annot_W,annot_H), (W,H), annotations)
 
-  return frames, labels, annotations
+  return frames, np.array(labels).astype(np.float), annotations
 
 def train(frames, labels, annotations, model):
   loss_function = ComboLoss(2, model)
@@ -44,8 +44,37 @@ def train(frames, labels, annotations, model):
   # TODO: complete this script (check for memory usage!!!)
   for epoch in range(epochs):
     for i in (t := trange(0, len(frames)-BS, BS)):
-      pass
-  
+      X_train = []  # frame
+      Y1_train = []  # crossroad bool
+      Y2_train = []  # road edge points
+      rng = np.random.default_rng()
+      samp = rng.choice(len(frames)-1, size=BS, replace=False)  # random sample of size BS
+
+      # prep tensors
+      for j in samp:
+        frame = frames[j]
+        frame = np.moveaxis(frame, -1, 0) # [batch_size, channels, height, width]
+        X_train.append(frame)
+        Y1_train.append([labels[j]])
+        flat_annot = serialize_polylines(annotations[j], model.n_coords, model.n_points, model.max_n_lines)
+        Y2_train.append(flat_annot)
+      X = torch.tensor(np.array(X_train)).float().to(device)
+      Y1 = torch.tensor(np.array(Y1_train)).float().to(device)
+      Y2 = torch.tensor(np.array(Y2_train)).float().to(device)
+
+      # forward and backpropagate
+      optim.zero_grad()
+      out = model(X)
+
+      # TODO: fix this!
+      loss, log_vars = loss_function(out, Y1, Y2)
+      loss.backward()
+      optim.step()
+
+      # TODO: complete this script
+      # print stats
+      exit(0)
+
   return model
 
 if __name__ == '__main__':
@@ -74,10 +103,11 @@ if __name__ == '__main__':
   print(annot_files)
   assert len(video_files) == len(log_files)
   assert len(video_files) == len(annot_files)
-  model = ComboModel()
+  model = ComboModel().to(device)
 
   for i in (t := trange(len(video_files))):
-    t.set_description("Loading from files: %s, %s, %s" % ((base_dir+video_files[i], base_dir+log_files[i], base_dir+annot_files[i])))
+    #t.set_description("Loading from files: %s, %s, %s" % ((base_dir+video_files[i], base_dir+log_files[i], base_dir+annot_files[i])))
+    print("Loading from files: %s, %s, %s" % ((base_dir+video_files[i], base_dir+log_files[i], base_dir+annot_files[i])))
     frames, labels, annotations = get_data(base_dir+video_files[i], base_dir+log_files[i], base_dir+annot_files[i])
     frames = conv_frames(frames)
     if i == 0:

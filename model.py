@@ -409,6 +409,13 @@ class ComboModel(nn.Module):
       layers.append(block(num_layers, self.in_channels, intermediate_channels))
     return nn.Sequential(*layers)
 
+  def num_flat_features(self, x):
+    size = x.size()[1:] # all dimensions except the batch dimension
+    num_features = 1
+    for s in size:
+      num_features *= s
+    return num_features
+
 #----------------------------------------------------------------------------------------------
 
 # Custom Loss functions
@@ -434,6 +441,9 @@ class ComboLoss(nn.Module):
     loss1 = mse(preds[1], re)
     precision1 = torch.exp(-self.log_vars[1])
 
+    loss = loss0 + loss1
+    loss = loss.mean()
+
     # TODO: need better multitask loss (weighted sum maybe)
-    return loss0 + loss1
+    return loss, self.log_vars.data.tolist()
 
