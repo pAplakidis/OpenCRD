@@ -357,13 +357,13 @@ class ComboModel(nn.Module):
     x = self.avgpool2(x)
     #print(x.shape)
     x = x.view(-1, self.num_flat_features(x))
-    cr = torch.sigmoid(self.cr_head(x))
+    cr = torch.sigmoid(self.cr_head(x)) # TODO: we get error here
     re = self.re_head(x)
-    return cr, re
+    return [cr, re]
 
   def get_cr_head(self):
     relu = nn.ReLU()
-    fc1 = nn.Linear(256*5*10, 1024) # NOTE: this works only with ResNet18
+    fc1 = nn.Linear(512*5*10, 1024) # NOTE: this works only with ResNet18
     bn1 = nn.BatchNorm1d(1024)
     fc2 = nn.Linear(1024, 128)
     bn2 = nn.BatchNorm1d(128)
@@ -376,6 +376,8 @@ class ComboModel(nn.Module):
 
   def get_re_head(self):
     l_relu = nn.LeakyReLU()
+    relu = nn.ReLU()
+    """
     fc1 = nn.Linear(512*5*10, 8192) # NOTE: this works only with ResNet18
     bn1 = nn.BatchNorm1d(8192)
     fc2 = nn.Linear(8192, 4096)
@@ -397,6 +399,21 @@ class ComboModel(nn.Module):
     head = nn.Sequential(fc1, bn1, l_relu, fc2, bn2, l_relu, fc3, bn3, l_relu,
                          fc4, bn4, l_relu, fc5, bn5, l_relu, fc6, bn6, l_relu,
                          fc8, bn8, l_relu, fc9)
+    """
+    
+    fc1 = nn.Linear(512*5*10, 2048) # NOTE: this works only with ResNet18
+    fc_bn1 = nn.BatchNorm1d(2048)
+    blinear1 = BayesianLinear(2048, 512)
+    b_bn1 = nn.BatchNorm1d(512)
+    blinear2 = BayesianLinear(512, 128)
+    b_bn2 = nn.BatchNorm1d(128)
+    blinear3 = BayesianLinear(128, self.n_coords*self.n_points*self.max_n_lines)
+
+    head = nn.Sequential(fc1, fc_bn1, relu,
+                         blinear1, b_bn1, relu,
+                         blinear2, b_bn2, relu,
+                         blinear3)
+
     return head
 
   def make_layers(self, num_layers, block, num_residual_blocks, intermediate_channels, stride):
@@ -427,25 +444,30 @@ def neg_log_likelihood(output, target, sigma=1.0):
 
 # Loss wrapper for multitask model
 class ComboLoss(nn.Module):
-  def __init__(self, task_num, model):
+  def __init__(self, task_num, model, device):
     super(ComboLoss, self).__init__()
     self.task_num = task_num  # TODO: maybe make this constant
     self.model = model
+    self.device = device
     self.log_vars = nn.Parameter(torch.zeros((task_num)))
 
   def forward(self, preds, cr, re):
-    bce, mse = nn.BCELoss(), nn.MSELoss()
+    bce, mse = nn.BCELoss(), nn.MSELoss() # TODO: maybe use NLLLoss for road_edge detection
 
     loss0 = bce(preds[0], cr)
-    precision0 = torch.exp(-self.log_vars[0])
     loss1 = mse(preds[1], re)
-    precision1 = torch.exp(-self.log_vars[1])
-
-    loss = loss0 + loss1
-    loss = loss.mean()
 
     # TODO: need better multitask loss (weighted sum maybe)
-    return loss, self.log_vars.data.tolist()
+    precision0 = torch.exp(-self.log_vars[0])
+    #loss0 = precision0*loss0 + self.log_vars[0]
+
+    precision1 = torch.exp(-self.log_vars[1])
+    #loss1 = precision1*loss1 + self.log_vars[1]
+
+    loss = loss0 + loss1
+    #loss = loss.mean()
+
+    return loss.to(self.device)
 
 #----------------------------------------------------------------------------------------------
 

@@ -33,8 +33,8 @@ def get_data(video_path, log_path, annotations_path):
   return frames, np.array(labels).astype(np.float), annotations
 
 def train(frames, labels, annotations, model):
-  loss_function = ComboLoss(2, model)
-  optim = torch.optim.Adam(model.parameters(), lr=0.01, eps=1e-07)
+  loss_function = ComboLoss(2, model, device)
+  optim = torch.optim.Adam(model.parameters(), lr=0.01)
   
   # TODO: we are dealing with 2 tasks, so accuracies might be different
   losses, accuracies = [], []
@@ -44,6 +44,8 @@ def train(frames, labels, annotations, model):
   # TODO: complete this script (check for memory usage!!!)
   print("[+] Training model ...")
   for epoch in range(epochs):
+    print("[+] Epoch", epoch+1, "/", epochs)
+    epoch_losses = []
     for i in (t := trange(0, len(frames)-BS, BS)):
       X_train = []  # frame
       Y1_train = []  # crossroad bool
@@ -67,20 +69,28 @@ def train(frames, labels, annotations, model):
       optim.zero_grad()
       out = model(X)
 
-      # TODO: fix this!
-      loss, log_vars = loss_function(out, Y1, Y2)
-      loss.backward()
+      loss = loss_function(out, Y1, Y2)
+      loss.backward() # TODO: this has issues with shapes ([32, 128], [32, 256]), due to device incompatibility in loss!!! [https://blog.csdn.net/andyL_05/article/details/107952479]
       optim.step()
 
-      # TODO: complete this script
+      # TODO: print accuracies as well
       # print stats
-      exit(0)
+      loss = loss.item()
+      epoch_losses.append(loss)
+      t.set_description("loss %.2f" % (loss))
 
+    losses.append(np.array(epoch_losses).mean())
+
+  # plot losses
   print("[+] Done training!")
+  plt.ylim(-1e+8, 1e+8)
+  plt.plot(losses)
+  plt.show()
   return model
 
 if __name__ == '__main__':
   device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+  device = "cpu"
   print(device)
 
   base_dir = "data/videos/usable/"
@@ -102,6 +112,7 @@ if __name__ == '__main__':
   video_files = video_files[:3] # TODO: this is a temp hack, need to get all videos' annotations
   log_files = log_files[:len(video_files)]
 
+  print("Data Files:")
   print(video_files)
   print(log_files)
   print(annot_files)
@@ -109,7 +120,7 @@ if __name__ == '__main__':
   assert len(video_files) == len(annot_files)
   model = ComboModel().to(device)
 
-  for i in (t := trange(len(video_files))):
+  for i in (t := trange(len(video_files)-2)): # TODO: remove the '-2' after debugging!!!!!
     #t.set_description("Loading from files: %s, %s, %s" % ((base_dir+video_files[i], base_dir+log_files[i], base_dir+annot_files[i])))
     print("Loading from files: %s, %s, %s" % ((base_dir+video_files[i], base_dir+log_files[i], base_dir+annot_files[i])))
     frames, labels, annotations = get_data(base_dir+video_files[i], base_dir+log_files[i], base_dir+annot_files[i])

@@ -51,7 +51,7 @@ def train(frames, annotations, model):
   BS = 64
 
   for epoch in range(epochs):
-    print("[+] Epoch", epoch, "/", epochs)
+    print("[+] Epoch", epoch+1, "/", epochs)
     t = trange(0, len(frames)-BS, BS)
     epoch_losses = []
     for i in t: 
