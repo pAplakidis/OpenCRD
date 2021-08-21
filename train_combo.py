@@ -6,8 +6,8 @@ from tqdm import trange
 from os import listdir
 import xml.etree.ElementTree as ET
 
+import matplotlib
 import matplotlib.pyplot as plt
-from matplotlib.pyplot import plot
 
 from helpers import *
 from model import *
@@ -37,8 +37,8 @@ def train(frames, labels, annotations, model):
   optim = torch.optim.Adam(model.parameters(), lr=0.01)
   
   # TODO: we are dealing with 2 tasks, so accuracies might be different
-  losses, accuracies = [], []
-  epochs = 5
+  losses, cr_accuracies, re_accuracies = [], [], []
+  epochs = 11
   BS = 32
   
   # TODO: complete this script (check for memory usage!!!)
@@ -84,13 +84,14 @@ def train(frames, labels, annotations, model):
   # plot losses
   print("[+] Done training!")
   plt.ylim(-1e+8, 1e+8)
-  plt.plot(losses)
+  #plt.plot(losses) # TODO: fix this, something to do with agg (GUI)
+  plt.savefig("plots/multitask_plot.png")
   plt.show()
+
   return model
 
 if __name__ == '__main__':
   device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-  device = "cpu"
   print(device)
 
   base_dir = "data/videos/usable/"
@@ -120,7 +121,7 @@ if __name__ == '__main__':
   assert len(video_files) == len(annot_files)
   model = ComboModel().to(device)
 
-  for i in (t := trange(len(video_files)-2)): # TODO: remove the '-2' after debugging!!!!!
+  for i in (t := trange(len(video_files))): # TODO: remove the '-2' after debugging!!!!!
     #t.set_description("Loading from files: %s, %s, %s" % ((base_dir+video_files[i], base_dir+log_files[i], base_dir+annot_files[i])))
     print("Loading from files: %s, %s, %s" % ((base_dir+video_files[i], base_dir+log_files[i], base_dir+annot_files[i])))
     frames, labels, annotations = get_data(base_dir+video_files[i], base_dir+log_files[i], base_dir+annot_files[i])

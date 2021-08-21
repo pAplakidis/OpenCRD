@@ -3,4 +3,5 @@ __pycache__/
 .*.swp
 .ipynb_checkpoints/
 models/
+plots/
 

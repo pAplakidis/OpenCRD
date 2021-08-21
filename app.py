@@ -40,6 +40,7 @@ if __name__ == '__main__':
   except FileNotFoundError:
     eval_labels = None
 
+  """
   # load Crossroad detector model (TODO: when we use multitask learning later, we will get all drawable data just from the model's output, for now we just do it separately)
   #cr_model_path = "models/cr_detector.pth" # CHANGE THIS
   cr_model_path = "models/resnet_cr_detector_local.pth" # CHANGE THIS
@@ -54,6 +55,14 @@ if __name__ == '__main__':
   re_model = ResREDetector(18, ResBlock, image_channels=3)
   re_model = load_model(re_model_path, re_model).to(device)
   re_model.eval()
+
+  combo_model = None  # TODO: make this prettier (no need for comments, etc)
+  """
+
+  combo_model_path = "models/combo_model.pth"
+  combo_model = ComboModel()
+  combo_model = load_model(combo_model_path, combo_model).to(device)
+  combo_model.eval()
 
   # for rounding up to a threshold instead of 0.5 (works with torch.where)
   x = torch.ones(2, 1).to(device)
@@ -97,18 +106,36 @@ if __name__ == '__main__':
         X_test = np.array(X_test)
         X = torch.tensor(X_test).float().to(device)
 
-        Y_pred = cr_model(X)
-        print("[~] Predicted value for cr_detection:", Y_pred[1].item())
-        cat = torch.where(Y_pred >= 0.8, x, y)
-        #pred = LABEL_DICT[int(torch.round(Y_pred[1]).item())]  # round to threshold 0.5
-        pred = LABEL_DICT[int(cat[1].item())]                   # round to custom threshold (e.g. 0.8)
-        conf = Y_pred[1].item()
+        # individual network for each task
+        if not combo_model:
+          Y_pred = cr_model(X)
+          print("[~] Predicted value for cr_detection:", Y_pred[1].item())
+          cat = torch.where(Y_pred >= 0.8, x, y)
+          #pred = LABEL_DICT[int(torch.round(Y_pred[1]).item())]  # round to threshold 0.5
+          pred = LABEL_DICT[int(cat[1].item())]                   # round to custom threshold (e.g. 0.8)
+          conf = Y_pred[1].item()
 
-        Y_pred1 = re_model(X)
-        print("[~] Predicted value for re_detection")
-        print(Y_pred1[1])
-        road_edges = deserialize_polylines(Y_pred1[1].cpu().detach().numpy(), re_model.n_coords, re_model.n_points, re_model.max_n_lines)
-        road_edges = convert_polylines((W,H), (disp_W,disp_H), road_edges)  # convert the 320x160 lines to display resolution
+          Y_pred1 = re_model(X)
+          print("[~] Predicted value for re_detection")
+          print(Y_pred1[1])
+          road_edges = deserialize_polylines(Y_pred1[1].cpu().detach().numpy(), re_model.n_coords, re_model.n_points, re_model.max_n_lines)
+          road_edges = convert_polylines((W,H), (disp_W,disp_H), road_edges)  # convert the 320x160 lines to display resolution
+        # multitask network
+        else:
+          out = combo_model(X)
+          Y_pred = out[0]
+          Y_pred1 = out[1]
+
+          print("[~] Predicted value for cr_detection:", Y_pred[1].item())
+          cat = torch.where(Y_pred >= 0.8, x, y)
+          #pred = LABEL_DICT[int(torch.round(Y_pred[1]).item())]  # round to threshold 0.5
+          pred = LABEL_DICT[int(cat[1].item())]                   # round to custom threshold (e.g. 0.8)
+          conf = Y_pred[1].item()
+
+          print("[~] Predicted value for re_detection")
+          print(Y_pred1[1])
+          road_edges = deserialize_polylines(Y_pred1[1].cpu().detach().numpy(), combo_model.n_coords, combo_model.n_points, combo_model.max_n_lines)
+          road_edges = convert_polylines((W,H), (disp_W,disp_H), road_edges)  # convert the 320x160 lines to display resolution
 
         # NOTE: the rest is just display code
         frames[1] = cv2.resize(frames[1], (disp_W,disp_H))

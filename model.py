@@ -485,5 +485,5 @@ def load_model(path, model):
   print("Loaded model from", path)
   return model
 
-# TODO: handle onnx format
+# TODO: handle .onnx format
 
