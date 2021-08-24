@@ -23,6 +23,9 @@ annot_H = 320
 disp_W = 1920//2
 disp_H = 1080//2
 
+# TODO: maybe make this an environment variable or an option (to be set in terminal)
+combo = True  # CHANGE THIS (whether to use combo model or separate models)
+
 if __name__ == '__main__':
   # check for nvidia GPU
   device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -40,29 +43,26 @@ if __name__ == '__main__':
   except FileNotFoundError:
     eval_labels = None
 
-  """
-  # load Crossroad detector model (TODO: when we use multitask learning later, we will get all drawable data just from the model's output, for now we just do it separately)
-  #cr_model_path = "models/cr_detector.pth" # CHANGE THIS
-  cr_model_path = "models/resnet_cr_detector_local.pth" # CHANGE THIS
-  #cr_model = CRDetector()
-  cr_model = ResCRDetector(18, ResBlock, image_channels=3)
-  cr_model = load_model(cr_model_path, cr_model).to(device)
-  cr_model.eval()
+  if not combo:
+    # load Crossroad detector model (TODO: when we use multitask learning later, we will get all drawable data just from the model's output, for now we just do it separately)
+    #cr_model_path = "models/cr_detector.pth" # CHANGE THIS
+    cr_model_path = "models/resnet_cr_detector_local.pth" # CHANGE THIS
+    #cr_model = CRDetector()
+    cr_model = ResCRDetector(18, ResBlock, image_channels=3)
+    cr_model = load_model(cr_model_path, cr_model).to(device)
+    cr_model.eval()
 
-  #re_model_path = "models/re_detector.pth" # CHANGE THIS
-  re_model_path = "models/re_detector_bayesian_local.pth" # CHANGE THIS
-  #re_model = REDetector()
-  re_model = ResREDetector(18, ResBlock, image_channels=3)
-  re_model = load_model(re_model_path, re_model).to(device)
-  re_model.eval()
-
-  combo_model = None  # TODO: make this prettier (no need for comments, etc)
-  """
-
-  combo_model_path = "models/combo_model.pth"
-  combo_model = ComboModel()
-  combo_model = load_model(combo_model_path, combo_model).to(device)
-  combo_model.eval()
+    #re_model_path = "models/re_detector.pth" # CHANGE THIS
+    re_model_path = "models/re_detector_bayesian_local.pth" # CHANGE THIS
+    #re_model = REDetector()
+    re_model = ResREDetector(18, ResBlock, image_channels=3)
+    re_model = load_model(re_model_path, re_model).to(device)
+    re_model.eval()
+  else:
+    combo_model_path = "models/combo_model.pth"
+    combo_model = ComboModel()
+    combo_model = load_model(combo_model_path, combo_model).to(device)
+    combo_model.eval()
 
   # for rounding up to a threshold instead of 0.5 (works with torch.where)
   x = torch.ones(2, 1).to(device)
@@ -107,7 +107,7 @@ if __name__ == '__main__':
         X = torch.tensor(X_test).float().to(device)
 
         # individual network for each task
-        if not combo_model:
+        if not combo:
           Y_pred = cr_model(X)
           print("[~] Predicted value for cr_detection:", Y_pred[1].item())
           cat = torch.where(Y_pred >= 0.8, x, y)

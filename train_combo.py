@@ -121,7 +121,7 @@ if __name__ == '__main__':
   assert len(video_files) == len(annot_files)
   model = ComboModel().to(device)
 
-  for i in (t := trange(len(video_files))): # TODO: remove the '-2' after debugging!!!!!
+  for i in (t := trange(len(video_files))):
     #t.set_description("Loading from files: %s, %s, %s" % ((base_dir+video_files[i], base_dir+log_files[i], base_dir+annot_files[i])))
     print("Loading from files: %s, %s, %s" % ((base_dir+video_files[i], base_dir+log_files[i], base_dir+annot_files[i])))
     frames, labels, annotations = get_data(base_dir+video_files[i], base_dir+log_files[i], base_dir+annot_files[i])
