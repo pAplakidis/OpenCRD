@@ -1,3 +1,4 @@
+import onnx
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -476,7 +477,7 @@ class ComboLoss(nn.Module):
 # .pth format
 def save_model(path, model):
   torch.save(model.state_dict(), path)
-  print("Model saved to path", path)
+  print("Model saved to", path)
 
 def load_model(path, model):
   model.load_state_dict(torch.load(path))
@@ -485,5 +486,18 @@ def load_model(path, model):
   print("Loaded model from", path)
   return model
 
-# TODO: handle .onnx format
+# .onnx format (network input x is required + names of the outputs)
+def save_onnx(path, model, x, output_names=['output']):
+  torch.onnx.export(model, x, path, export_params=True, opset_version=10,
+                    do_constant_folding=True, input_names=['image'], output_names=output_names,
+                    dynamic_axes={'input': {0: 'batch_size'},
+                                  'output': {0: 'batch_size'}})
+  print("Model saved to", path)
+
+# TODO: handle load onnx as well
+def load_onnx(path, model):
+  model = onnx.load(path)
+  onnx.chacker.check_model(onnx_model)
+  model.train()
+  print("Loaded model from", path)
 

@@ -88,6 +88,9 @@ def train(frames, labels, annotations, model):
   plt.savefig("plots/multitask_plot.png")
   plt.show()
 
+  output_names = ['crossroad', 'road_edges']
+  save_onnx("models/combo_model.onnx", model, X, output_names)
+
   return model
 
 if __name__ == '__main__':
