@@ -39,7 +39,10 @@ def train(frames, labels, annotations, model):
   # TODO: we are dealing with 2 tasks, so accuracies might be different
   losses, cr_accuracies, re_accuracies = [], [], []
   epochs = 11
-  BS = 32
+  if model.num_layers == 50:
+    BS = 8
+  else:
+    BS = 32
   
   # TODO: complete this script (check for memory usage!!!)
   print("[+] Training model ...")
@@ -69,6 +72,8 @@ def train(frames, labels, annotations, model):
       optim.zero_grad()
       out = model(X)
 
+      #print(out[1].shape)
+      #print(Y2.shape)
       loss = loss_function(out, Y1, Y2)
       loss.backward() # TODO: this has issues with shapes ([32, 128], [32, 256]), due to device incompatibility in loss!!! [https://blog.csdn.net/andyL_05/article/details/107952479]
       optim.step()
@@ -122,9 +127,10 @@ if __name__ == '__main__':
   print(annot_files)
   assert len(video_files) == len(log_files)
   assert len(video_files) == len(annot_files)
-  model = ComboModel().to(device)
+  model = ComboModel(num_layers=34).to(device)  # CHANGE THIS
 
-  for i in (t := trange(len(video_files))):
+  #for i in (t := trange(len(video_files))):
+  for i in (t := trange(len(video_files)-2)): # TODO: this is temp for debugging
     #t.set_description("Loading from files: %s, %s, %s" % ((base_dir+video_files[i], base_dir+log_files[i], base_dir+annot_files[i])))
     print("Loading from files: %s, %s, %s" % ((base_dir+video_files[i], base_dir+log_files[i], base_dir+annot_files[i])))
     frames, labels, annotations = get_data(base_dir+video_files[i], base_dir+log_files[i], base_dir+annot_files[i])

@@ -60,7 +60,7 @@ if __name__ == '__main__':
     re_model.eval()
   else:
     combo_model_path = "models/combo_model.pth"
-    combo_model = ComboModel()
+    combo_model = ComboModel(num_layers=34) # CHANGE THIS
     combo_model = load_model(combo_model_path, combo_model).to(device)
     combo_model.eval()
 

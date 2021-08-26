@@ -318,18 +318,28 @@ class ComboModel(nn.Module):
     self.n_points = 4  # number of points of each polyline
     self.max_n_lines = 6 # max number of polylines per frame
 
+    self.num_layers = num_layers
+    self.cnn_output_shape = 512*5*10  # shape of the output of the cnn (input for fully connected layers)
+
     if num_layers < 50:
       self.expansion = 1
     else:
       self.expansion = 4
     if num_layers == 18:
       layers = [2, 2, 2, 2]
-    elif num_layers == 34 or num_layers == 50:
+      self.cnn_output_shape = 512*5*10
+    elif num_layers == 34:
       layers = [3, 4, 23, 3]
+      self.cnn_output_shape = 512*5*10
+    elif num_layers == 50:
+      layers = [3, 4, 23, 3]
+      self.cnn_output_shape = 2048*5*10
     elif num_layers == 101:
       layers = [3, 8, 23, 3]
+      self.cnn_output_shape = 512*5*10
     else:
       layers = [3, 8, 36, 3]
+      self.cnn_output_shape = 512*5*10
 
     self.in_channels = 16
     self.conv1 = nn.Conv2d(image_channels, 16, kernel_size=7, stride=2, padding=3)  # TODO: maybe kernel 5x5
@@ -364,7 +374,7 @@ class ComboModel(nn.Module):
 
   def get_cr_head(self):
     relu = nn.ReLU()
-    fc1 = nn.Linear(512*5*10, 1024) # NOTE: this works only with ResNet18
+    fc1 = nn.Linear(self.cnn_output_shape, 1024)
     bn1 = nn.BatchNorm1d(1024)
     fc2 = nn.Linear(1024, 128)
     bn2 = nn.BatchNorm1d(128)
@@ -375,11 +385,12 @@ class ComboModel(nn.Module):
     head = nn.Sequential(fc1, bn1, relu, fc2, bn2, relu, fc3, bn3, relu, fc4)
     return head
 
+  # TODO: make this model better (vertical or horizontal scaling)
   def get_re_head(self):
     l_relu = nn.LeakyReLU()
     relu = nn.ReLU()
     """
-    fc1 = nn.Linear(512*5*10, 8192) # NOTE: this works only with ResNet18
+    fc1 = nn.Linear(self.cnn_output_shape, 8192) # NOTE: this works only with ResNet18
     bn1 = nn.BatchNorm1d(8192)
     fc2 = nn.Linear(8192, 4096)
     bn2 = nn.BatchNorm1d(4096)
@@ -402,7 +413,7 @@ class ComboModel(nn.Module):
                          fc8, bn8, l_relu, fc9)
     """
     
-    fc1 = nn.Linear(512*5*10, 2048) # NOTE: this works only with ResNet18
+    fc1 = nn.Linear(self.cnn_output_shape, 2048)
     fc_bn1 = nn.BatchNorm1d(2048)
     blinear1 = BayesianLinear(2048, 512)
     b_bn1 = nn.BatchNorm1d(512)
@@ -453,10 +464,12 @@ class ComboLoss(nn.Module):
     self.log_vars = nn.Parameter(torch.zeros((task_num)))
 
   def forward(self, preds, cr, re):
-    bce, mse = nn.BCELoss(), nn.MSELoss() # TODO: maybe use NLLLoss for road_edge detection
+    cr_loss = nn.BCELoss()
+    #re_loss = nn.NLLLoss() # TODO: this doesn't work yet
+    re_loss = nn.MSELoss()
 
-    loss0 = bce(preds[0], cr)
-    loss1 = mse(preds[1], re)
+    loss0 = cr_loss(preds[0], cr)
+    loss1 = re_loss(preds[1], re)
 
     # TODO: need better multitask loss (weighted sum maybe)
     precision0 = torch.exp(-self.log_vars[0])
