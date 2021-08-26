@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from os import listdir
+import os
 import sys
 import time
 import numpy as np
@@ -23,13 +23,22 @@ annot_H = 320
 disp_W = 1920//2
 disp_H = 1080//2
 
-# TODO: maybe make this an environment variable or an option (to be set in terminal)
-combo = True  # CHANGE THIS (whether to use combo model or separate models)
 
 if __name__ == '__main__':
   # check for nvidia GPU
   device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
   print(device)
+
+
+  # run with MODE="combo" ./app.py ... to use combo model
+  mode = os.getenv('MODE')
+  if mode == None:
+    mode = "single"
+  print("Running in", mode, "mode")
+  if mode == "combo":
+    combo = True
+  else:
+    combo = False
 
   #eval_path = "data/videos/with_crossroads/city_4.mp4"
   eval_path = sys.argv[1]
@@ -43,7 +52,7 @@ if __name__ == '__main__':
   except FileNotFoundError:
     eval_labels = None
 
-  if not combo:
+  if combo == 0:
     # load Crossroad detector model (TODO: when we use multitask learning later, we will get all drawable data just from the model's output, for now we just do it separately)
     #cr_model_path = "models/cr_detector.pth" # CHANGE THIS
     cr_model_path = "models/resnet_cr_detector_local.pth" # CHANGE THIS

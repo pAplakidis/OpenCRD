@@ -5,7 +5,7 @@ TASKS for each NN:
 - predict path in the intersections based on the desired direction (forward, left, right)
 
 * Secondary:
-- road edge detection (PENDING)
+- road edge detection (DONE)
 - lane detection
-- depth estimation (for crossroads)
+- depth estimation? (for crossroads)
 
