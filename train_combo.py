@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 
 from helpers import *
 from model import *
-from project_polylines import *
+from polylines import *
 
 
 # DATA FUNCTIONS

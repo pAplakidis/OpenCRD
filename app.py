@@ -9,7 +9,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from model import *
-from project_polylines import *
+from polylines import *
 
 # neural network input resolutions
 W = 320
@@ -33,7 +33,7 @@ if __name__ == '__main__':
   # run with MODE="combo" ./app.py ... to use combo model
   mode = os.getenv('MODE')
   if mode == None:
-    mode = "single"
+    mode = "single-net"
   print("Running in", mode, "mode")
   if mode == "combo":
     combo = True

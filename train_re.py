@@ -11,7 +11,7 @@ from matplotlib.pyplot import plot
 
 from helpers import *
 from model import *
-from project_polylines import *
+from polylines import *
 
 # DATA FUNCTIONS
 # get training data from path
@@ -25,15 +25,6 @@ def get_data(video_path, annotations_path):
   annotations = convert_annotations((annot_W,annot_H), (W,H), annotations)
 
   return frames, annotations
-
-# make pims video into actual numpy frames
-def conv_frames(frames):
-  imgs = []
-  print("Getting frames into proper arrays")
-  for frame in frames:
-    imgs.append(cv2.resize(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB), (W,H)))
-  print("Frames converted to numpy arrays")
-  return np.array(imgs)
 
 # TRAINING PROCESS
 def train(frames, annotations, model):
@@ -150,7 +141,7 @@ if __name__ == '__main__':
   for f in listdir(base_dir):
     if f.endswith(".mp4"):
       video_files.append(f)
-    elif f.endswith(".xml"):
+    elif f.endswith("annotations.xml"):
       annot_files.append(f)
   video_files, annot_files = sorted(video_files), sorted(annot_files)
 
