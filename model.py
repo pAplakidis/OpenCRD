@@ -307,6 +307,12 @@ class ResREDetector(nn.Module):
 
 #====================================================================================================
 
+# TODO: don't forget that we also need desire in the dataset and in the input right after the convolutions
+class PathPlanner(nn.Module):
+  pass
+
+#====================================================================================================
+
 # Multitask Model
 class ComboModel(nn.Module):
   def __init__(self, num_layers=18, block=ResBlock, image_channels=3):

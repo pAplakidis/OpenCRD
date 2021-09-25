@@ -44,6 +44,7 @@ if __name__ == '__main__':
   eval_path = sys.argv[1]
   log_path = eval_path[:-4] + ".txt"
   annot_path = eval_path[:-4] + "_annotations.xml"
+  pplan_path = eval_path[:-4] + "_path.xml"
 
   try:
     with open(log_path, "r") as log_file:
@@ -77,7 +78,7 @@ if __name__ == '__main__':
   x = torch.ones(2, 1).to(device)
   y = torch.zeros(2, 1).to(device)
 
-  # get polylines
+  # get road_edges ground truth
   try:
     #annot_path = sys.argv[2]
     polylines = extract_polylines(annot_path)
@@ -85,6 +86,14 @@ if __name__ == '__main__':
     annotations = convert_annotations((annot_W,annot_H), (disp_W,disp_H), annotations)  # convert the 480x320 lines to display resolution
   except FileNotFoundError:
     annotations = None
+
+  # TODO: display path ground truth!!!
+  try:
+    path = extract_polylines(pplan_path)
+    path = extract_frame_lines(path)
+    path = convert_annotations((path_W,path_H), (disp_W,disp_H), path)  # convert path polyline's resolution to a displayable one
+  except FileNotFoundError:
+    path = None
 
   cap = cv2.VideoCapture(eval_path)
   idx = 0

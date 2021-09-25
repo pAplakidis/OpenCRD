@@ -187,7 +187,7 @@ if __name__ == '__main__':
       all_frames = np.concatenate((all_frames, frames), axis=0)
       all_annotations = np.concatenate((all_annotations, annotations), axis=0)
 
-  frames, labels = [], [] # free up memory
+  #frames, annotations = [], [] # free up memory
   print("[+] Training model ...")
   model = train(all_frames, all_annotations[:-1], model)
   print("[+] Trained model on all data files")

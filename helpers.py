@@ -9,9 +9,13 @@ import numpy as np
 W = 320
 H = 160
 
-# annotations' resolution
+# road_edges' resolution
 annot_W = 480
 annot_H = 320
+
+# paths' resolution
+path_W = 2562
+path_H = 1440
 
 LABEL_DICT = {0: "no crossroad", 1: "crossroad"}  # NOTE: no need to change this for 2 classes (argmax still gets us the same results)
 
