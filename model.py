@@ -309,7 +309,98 @@ class ResREDetector(nn.Module):
 
 # TODO: don't forget that we also need desire in the dataset and in the input right after the convolutions
 class PathPlanner(nn.Module):
-  pass
+  def __init__(self, num_layers=18, block=ResBlock, image_channels=3):
+    assert num_layers in [18, 34, 50, 101, 152], "Unknown ResNet architecture, number of layers must be 18, 34, 50, 101 or 152"
+    super(PathPlanner, self).__init__()
+
+    self.n_coords = 2
+    self.n_points = 8
+    self.max_n_lines = 6
+
+    self.num_layers = num_layers
+    self.cnn_output_shape = 512*5*10
+    
+    if num_layers < 50:
+      self.expansion = 1
+    else:
+      self.expansion = 4
+    if num_layers == 18:
+      layers = [2, 2, 2, 2]
+      self.cnn_output_shape = 512*5*10
+    elif num_layers == 34:
+      layers = [3, 4, 23, 3]
+      self.cnn_output_shape = 512*5*10
+    elif num_layers == 50:
+      layers = [3, 4, 23, 3]
+      self.cnn_output_shape = 2048*5*10
+    elif num_layers == 101:
+      layers = [3, 8, 23, 3]
+      self.cnn_output_shape = 512*5*10
+    else:
+      layers = [3, 8, 36, 3]
+      self.cnn_output_shape = 512*5*10
+
+    self.in_channels = 16
+    self.conv1 = nn.Conv2d(image_channels, 16, kernel_size=7, stride=2, padding=3)  # TODO: maybe kernel 5x5
+    self.bn1 = nn.BatchNorm2d(16)
+    self.elu = nn.ELU()
+    self.avgpool1 = nn.AvgPool2d(3, 2, padding=1)
+
+    # ResNet Layers
+    self.layer1 = self.make_layers(num_layers, block, layers[0], intermediate_channels=64, stride=1)
+    self.layer2 = self.make_layers(num_layers, block, layers[1], intermediate_channels=128, stride=2)
+    self.layer3 = self.make_layers(num_layers, block, layers[2], intermediate_channels=256, stride=2)
+    self.layer4 = self.make_layers(num_layers, block, layers[3], intermediate_channels=512, stride=2)
+
+    self.avgpool2 = nn.AvgPool2d(1, 1)
+
+    # Fully Connected Layers (TODO: add desire)
+    l_relu = nn.LeakyReLU()
+    relu = nn.ReLU()
+    fc1 = nn.Linear(self.cnn_output_shape, 2048)
+    fc_bn1 = nn.BatchNorm1d(2048)
+    blinear1 = BayesianLinear(2048, 512)
+    b_bn1 = nn.BatchNorm1d(512)
+    blinear2 = BayesianLinear(512, 128)
+    b_bn2 = nn.BatchNorm1d(128)
+    blinear3 = BayesianLinear(128, self.n_coords*self.n_points*self.max_n_lines)
+
+    # driving policy (part of NN that plans the actual path)
+    self.policy = nn.Sequential(fc1, fc_bn1, relu,
+                         blinear1, b_bn1, relu,
+                         blinear2, b_bn2, relu,
+                         blinear3)
+
+  def forward(self, x):
+    x = self.avgpool1(self.elu(self.bn1(self.conv1(x))))
+    x = self.layer1(x)
+    x = self.layer2(x)
+    x = self.layer3(x)
+    x = self.layer4(x)
+    x = self.avgpool2(x)
+    #print(x.shape)
+    x = x.view(-1, self.num_flat_features(x))
+    x = self.policy(x)
+
+    return x
+
+  def make_layers(self, num_layers, block, num_residual_blocks, intermediate_channels, stride):
+    layers = []
+    identity_downsample = nn.Sequential(nn.Conv2d(self.in_channels, intermediate_channels*self.expansion, kernel_size=1, stride=stride),
+                                        nn.BatchNorm2d(intermediate_channels*self.expansion))
+    layers.append(block(num_layers, self.in_channels, intermediate_channels, identity_downsample, stride))
+    self.in_channels = intermediate_channels*self.expansion
+    for i in range(num_residual_blocks - 1):
+      layers.append(block(num_layers, self.in_channels, intermediate_channels))
+    return nn.Sequential(*layers)
+
+  def num_flat_features(self, x):
+    size = x.size()[1:] # all dimensions except the batch dimension
+    num_features = 1
+    for s in size:
+      num_features *= s
+    return num_features
+
 
 #====================================================================================================
 

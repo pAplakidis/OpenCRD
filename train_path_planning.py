@@ -48,7 +48,6 @@ if __name__ == '__main__':
 
   assert len(video_files) == len(path_files), "Number of video files != number of annotation files"
 
-  # TODO: define the model in model.py
   model = PathPlanner()
 
   # TODO: add desires in the training dataset as well
@@ -56,12 +55,17 @@ if __name__ == '__main__':
     print("[~] Loading from files: %s , %s" % (base_dir+video_files[i], base_dir+path_files[i]))
     frames, path = get_data(base_dir+video_files[i], base_dir+path_files[i])
     frames = conv_frames(frames)
+    print(path.shape)
+    print()
     if i == 0:
       all_frames = frames
       all_paths= path
     else:
       all_frames = np.concatenate((all_frames, frames), axis=0)
       all_paths = np.concatenate((all_paths, path), axis=0)
+
+    # TODO: problem with city_2 and city_3 path dimensions!!! (they are arrays of lists)
+    print(all_paths.shape)
 
   #frames, path = [], [] # free up memory
   print("[+] Training model ...")
