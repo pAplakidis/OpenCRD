@@ -23,8 +23,59 @@ def get_data(video_path, annotations_path):
 
   return frames, path
 
-def train():
-  pass
+def train(frames, path, desires, model):
+  # TODO: try NLLLoss() or neg_log_likelihood (from model.py)
+  loss_function = nn.MSELoss
+  optim = torch.optim.Adam(model.parameters(), lr=0.01)
+
+  # TODO: handle accuracies as well
+  losses = []
+  epochs = 11
+  BS = 128
+
+  # TODO: handle desires as well
+  for epoch in range(epochs):
+    print("[+] Epoch", epoch+1, "/", epochs)
+    epoch_losses = []
+    for i in (t := trange(0, len(frames)-BS, BS)):
+      # get data into NN
+      X_train = []
+      Y_train = []
+
+      rng = np.random.default_rng()
+      samp = rng.choice(len(frames)-1, size=BS, replace=False)
+      for j in samp:
+        frame = frames[j]
+        frame = np.moveaxis(frame, -1, 0) # [batch_size, channels, height, width]
+        X_train.append(frame)
+        # TODO: maybe make a new serialization for path (less computation)
+        flat_path = serialize_polylines(path[j], model.n_coords, model.n_points, model.max_n_lines)
+        Y_train.append(flat_annot)
+
+        X = torch.tensor(np.array(X_train)).float().to(device)
+        Y = torch.tensor(np.array(Y_train)).float().to(device)
+
+        # forward and backpropagation
+        optim.zero_grad()
+        out = model(X)
+        #loss = neg_log_likelihood(out, Y)
+        loss = loss_function(out, Y)
+        loss = loss.mean()
+        loss.backward()
+        optim.step()
+
+        # stats
+        loss = loss.item()
+        epoch_losses.append(loss)
+        t.set_description("loss %.2f out %.2f" % (loss, out.mean().item()))
+
+      losses.append(np.array(epoch_losses).mean())
+
+  # plot losses and accuracies
+  plot(loses)
+  plt.show()
+
+  return model
 
 
 if __name__ == '__main__':
@@ -32,6 +83,7 @@ if __name__ == '__main__':
   print(device)
 
   base_dir = "data/videos/usable/"
+  model_path = "models/path_planner.pth"
 
   video_files = []
   path_files = []
@@ -51,7 +103,7 @@ if __name__ == '__main__':
   model = PathPlanner()
 
   # TODO: add desires in the training dataset as well
-  for i in trange(0, len(video_files)):
+  for i in trange(0, len(video_files)-2): # TODO: remove the -2 when done debugging
     print("[~] Loading from files: %s , %s" % (base_dir+video_files[i], base_dir+path_files[i]))
     frames, path = get_data(base_dir+video_files[i], base_dir+path_files[i])
     frames = conv_frames(frames)
@@ -69,6 +121,7 @@ if __name__ == '__main__':
 
   #frames, path = [], [] # free up memory
   print("[+] Training model ...")
-  #model = train(all_frames, all_paths[:-1], model)
+  model = train(all_frames, all_paths[:-1], None, model)
   print("[+] Trained model on all data files")
+  save_model(model_path, model)
 
