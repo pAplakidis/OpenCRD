@@ -8,22 +8,12 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from helpers import *
 from model import *
 from polylines import *
 
-# neural network input resolutions
-W = 320
-H = 160
-LABEL_DICT = {0: "no-crossroad", 1: "crossroad"}
 
-# resolution of road_edges annotations
-annot_W = 480
-annot_H = 320
-
-disp_W = 1920//2
-disp_H = 1080//2
-
-
+# TODO: maybe put this into functions (make it cleaner)
 if __name__ == '__main__':
   # check for nvidia GPU
   device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -84,6 +74,7 @@ if __name__ == '__main__':
     polylines = extract_polylines(annot_path)
     annotations = extract_frame_lines(polylines)
     annotations = convert_annotations((annot_W,annot_H), (disp_W,disp_H), annotations)  # convert the 480x320 lines to display resolution
+    print("[+] Using ground truth for road_edges")
   except FileNotFoundError:
     annotations = None
 
@@ -92,6 +83,7 @@ if __name__ == '__main__':
     path = extract_polylines(pplan_path)
     path = extract_frame_lines(path)
     path = convert_annotations((path_W,path_H), (disp_W,disp_H), path)  # convert path polyline's resolution to a displayable one
+    print("[+] Using ground truth for path")
   except FileNotFoundError:
     path = None
 
@@ -158,13 +150,20 @@ if __name__ == '__main__':
         # NOTE: the rest is just display code
         frames[1] = cv2.resize(frames[1], (disp_W,disp_H))
 
-        # display groud-truth road edges
+        # display groud-truth road edges (red color)
         if annotations is not None:
           polylines = annotations[idx]
           frames[1] = draw_polylines(frames[1], polylines)
 
-        # draw predicted road edges
+        # display ground-truth path (blue color)
+        if path is not None:
+          p_polylines = path[idx]
+          frames[1] = draw_polylines(frames[1], p_polylines, color=(255, 0, 0))
+
+        # draw predicted road edges (orange color)
         frames[1] = draw_polylines(frames[1], road_edges, color=(0, 128, 255))
+
+        # TODO: draw predicted path (green color)
 
         # display category text
         font = cv2.FONT_HERSHEY_SIMPLEX 

@@ -19,6 +19,10 @@ path_H = 1440
 
 LABEL_DICT = {0: "no crossroad", 1: "crossroad"}  # NOTE: no need to change this for 2 classes (argmax still gets us the same results)
 
+# display resolution for the app
+disp_W = 1920//2
+disp_H = 1080//2
+
 # make pims video into actual numpy frames
 def conv_frames(frames):
   imgs = []
