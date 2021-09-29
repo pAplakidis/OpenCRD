@@ -52,12 +52,19 @@ if __name__ == '__main__':
     cr_model = load_model(cr_model_path, cr_model).to(device)
     cr_model.eval()
 
+    # load Road-Edge detector model
     #re_model_path = "models/re_detector.pth" # CHANGE THIS
     re_model_path = "models/re_detector_bayesian_local.pth" # CHANGE THIS
     #re_model = REDetector()
     re_model = ResREDetector(18, ResBlock, image_channels=3)
     re_model = load_model(re_model_path, re_model).to(device)
     re_model.eval()
+
+    # load Path-Planner model
+    path_planner_path = "models/path_planner.pth"
+    path_planner = PathPlanner()
+    path_planner = load_model(path_planner_path, path_planner).to(device)
+    path_planner.eval()
   else:
     combo_model_path = "models/combo_model.pth"
     combo_model = ComboModel(num_layers=34) # CHANGE THIS
@@ -130,6 +137,13 @@ if __name__ == '__main__':
           print(Y_pred1[1])
           road_edges = deserialize_polylines(Y_pred1[1].cpu().detach().numpy(), re_model.n_coords, re_model.n_points, re_model.max_n_lines)
           road_edges = convert_polylines((W,H), (disp_W,disp_H), road_edges)  # convert the 320x160 lines to display resolution
+
+          Y_pred2 = path_planner(X)
+          print("[~] Predicted value for path_planning")
+          print(Y_pred2[1])
+          pred_path = deserialize_polylines(Y_pred2[1].cpu().detach().numpy(), path_planner.n_coords, path_planner.n_points, path_planner.max_n_lines)
+          pred_path = convert_polylines((W,H), (disp_W,disp_H), pred_path)
+
         # multitask network
         else:
           out = combo_model(X)
@@ -163,7 +177,8 @@ if __name__ == '__main__':
         # draw predicted road edges (orange color)
         frames[1] = draw_polylines(frames[1], road_edges, color=(0, 128, 255))
 
-        # TODO: draw predicted path (green color)
+        # draw predicted path (green color)
+        frames[1] = draw_polylines(frames[1], pred_path, color=(0, 255, 0))
 
         # display category text
         font = cv2.FONT_HERSHEY_SIMPLEX 

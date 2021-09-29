@@ -100,7 +100,7 @@ if __name__ == '__main__':
 
   assert len(video_files) == len(path_files), "Number of video files != number of annotation files"
 
-  model = PathPlanner().to(device)
+  model = PathPlanner().to(device).train()
 
   # TODO: add desires in the training dataset as well
   for i in trange(0, len(video_files)-2): # TODO: remove the -2 when done debugging
