@@ -30,7 +30,7 @@ def train(frames, path, desires, model):
 
   # TODO: handle accuracies as well
   losses = []
-  epochs = 11
+  epochs = 50
   BS = 128
 
   # TODO: handle desires as well
@@ -48,31 +48,31 @@ def train(frames, path, desires, model):
         frame = frames[j]
         frame = np.moveaxis(frame, -1, 0) # [batch_size, channels, height, width]
         X_train.append(frame)
-        # TODO: maybe make a new serialization for path (less computation)
         flat_path = serialize_polylines(path[j], model.n_coords, model.n_points, model.max_n_lines)
-        Y_train.append(flat_annot)
+        Y_train.append(flat_path)
 
-        X = torch.tensor(np.array(X_train)).float().to(device)
-        Y = torch.tensor(np.array(Y_train)).float().to(device)
+      X = torch.tensor(np.array(X_train)).float().to(device)
+      Y = torch.tensor(np.array(Y_train)).float().to(device)
 
-        # forward and backpropagation
-        optim.zero_grad()
-        out = model(X)
-        #loss = neg_log_likelihood(out, Y)
-        loss = loss_function(out, Y)
-        loss = loss.mean()
-        loss.backward()
-        optim.step()
+      # forward and backpropagation
+      optim.zero_grad()
+      out = model(X)
+      loss = neg_log_likelihood(out, Y)
+      #loss = loss_function(out, Y)
+      loss = loss.mean()
+      loss.backward()
+      optim.step()
 
-        # stats
-        loss = loss.item()
-        epoch_losses.append(loss)
-        t.set_description("loss %.2f out %.2f" % (loss, out.mean().item()))
+      # stats
+      loss = loss.item()
+      epoch_losses.append(loss)
+      t.set_description("loss %.2f out %.2f" % (loss, out.mean().item()))
 
-      losses.append(np.array(epoch_losses).mean())
+    losses.append(np.array(epoch_losses).mean())
 
   # plot losses and accuracies
-  plot(loses)
+  plot(losses)
+  plt.savefig("plots/path_planner_plot.png")
   plt.show()
 
   return model
@@ -100,14 +100,14 @@ if __name__ == '__main__':
 
   assert len(video_files) == len(path_files), "Number of video files != number of annotation files"
 
-  model = PathPlanner()
+  model = PathPlanner().to(device)
 
   # TODO: add desires in the training dataset as well
   for i in trange(0, len(video_files)-2): # TODO: remove the -2 when done debugging
     print("[~] Loading from files: %s , %s" % (base_dir+video_files[i], base_dir+path_files[i]))
     frames, path = get_data(base_dir+video_files[i], base_dir+path_files[i])
     frames = conv_frames(frames)
-    print(path.shape)
+    #print(path.shape)
     print()
     if i == 0:
       all_frames = frames
@@ -117,7 +117,7 @@ if __name__ == '__main__':
       all_paths = np.concatenate((all_paths, path), axis=0)
 
     # TODO: problem with city_2 and city_3 path dimensions!!! (they are arrays of lists)
-    print(all_paths.shape)
+    #print(all_paths.shape)
 
   #frames, path = [], [] # free up memory
   print("[+] Training model ...")

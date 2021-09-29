@@ -315,7 +315,7 @@ class PathPlanner(nn.Module):
 
     self.n_coords = 2
     self.n_points = 8
-    self.max_n_lines = 6
+    self.max_n_lines = 1
 
     self.num_layers = num_layers
     self.cnn_output_shape = 512*5*10
@@ -365,7 +365,7 @@ class PathPlanner(nn.Module):
     b_bn2 = nn.BatchNorm1d(128)
     blinear3 = BayesianLinear(128, self.n_coords*self.n_points*self.max_n_lines)
 
-    # driving policy (part of NN that plans the actual path)
+    # driving policy (actual path planner)
     self.policy = nn.Sequential(fc1, fc_bn1, relu,
                          blinear1, b_bn1, relu,
                          blinear2, b_bn2, relu,
@@ -566,7 +566,8 @@ class ComboLoss(nn.Module):
     re_loss = nn.MSELoss()
 
     loss0 = cr_loss(preds[0], cr)
-    loss1 = re_loss(preds[1], re)
+    #loss1 = re_loss(preds[1], re)
+    loss1 = neg_log_likelihood(preds[1], re)
 
     # TODO: need better multitask loss (weighted sum maybe)
     precision0 = torch.exp(-self.log_vars[0])
