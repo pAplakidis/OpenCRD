@@ -27,7 +27,7 @@ class CRDetector(nn.Module):
     self.fc3 = nn.Linear(84, 1)
 
   def forward(self, x):
-    x = self.pool(F.relu(self.conv2_bn1(self.conv1(x))))
+    x = self.pool(F.relu(self.conv1_bn1(self.conv1(x))))
     x = self.pool(F.relu(self.conv2_bn2(self.conv2(x))))
     x = self.pool(F.relu(self.conv2_bn3(self.conv3(x))))
     #print(x.shape)
