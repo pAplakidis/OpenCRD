@@ -12,7 +12,7 @@ class CRDetector(nn.Module):
 
     # Convolutional Layers
     self.conv1 = nn.Conv2d(3, 16, 5)
-    self.conv1_bn1 = nn.BatchNorm2d(16)
+    self.conv2_bn1 = nn.BatchNorm2d(16)
     self.pool = nn.MaxPool2d(2, 2)
     self.conv2 = nn.Conv2d(16, 32, 5)
     self.conv2_bn2 = nn.BatchNorm2d(32)
@@ -27,7 +27,7 @@ class CRDetector(nn.Module):
     self.fc3 = nn.Linear(84, 1)
 
   def forward(self, x):
-    x = self.pool(F.relu(self.conv1_bn1(self.conv1(x))))
+    x = self.pool(F.relu(self.conv2_bn1(self.conv1(x))))
     x = self.pool(F.relu(self.conv2_bn2(self.conv2(x))))
     x = self.pool(F.relu(self.conv2_bn3(self.conv3(x))))
     #print(x.shape)
