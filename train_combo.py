@@ -88,8 +88,8 @@ def train(frames, labels, annotations, model):
 
   # plot losses
   print("[+] Done training!")
-  plt.ylim(-1e+8, 1e+8)
-  #plt.plot(losses) # TODO: fix this, something to do with agg (GUI)
+  #plt.ylim(-1e+8, 1e+8)
+  plt.plot(losses)
   plt.savefig("plots/multitask_plot.png")
   plt.show()
 

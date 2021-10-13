@@ -103,7 +103,7 @@ if __name__ == '__main__':
   model = PathPlanner().to(device).train()
 
   # TODO: add desires in the training dataset as well
-  for i in trange(0, len(video_files)-2): # TODO: remove the -2 when done debugging
+  for i in trange(0, len(video_files)-1): # TODO: remove the -2 when done debugging
     print("[~] Loading from files: %s , %s" % (base_dir+video_files[i], base_dir+path_files[i]))
     frames, path = get_data(base_dir+video_files[i], base_dir+path_files[i])
     frames = conv_frames(frames)
