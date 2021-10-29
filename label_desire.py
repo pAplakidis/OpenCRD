@@ -3,6 +3,8 @@ import sys
 import cv2
 import numpy as np
 
+from helpers import *
+
 # (3, 960, 1280) inputs images
 W = 1280
 H = 960
@@ -10,10 +12,6 @@ H = 960
 # TODO: implement timestamps (so we can go back and forth wherever we want in the video, this might need extra work with the line indices so they can match the frames)
 
 # for every frame/line output the label in a txt file
-DESIRE = {0: "forward",
-          1: "right",
-          2: "left"}
-
 if __name__ == '__main__':
   # NOTE: only .mp4 videos
   video_path = sys.argv[1]

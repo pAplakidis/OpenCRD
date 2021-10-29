@@ -17,7 +17,11 @@ annot_H = 320
 path_W = 2562
 path_H = 1440
 
+# dictionaries
 LABEL_DICT = {0: "no crossroad", 1: "crossroad"}  # NOTE: no need to change this for 2 classes (argmax still gets us the same results)
+DESIRE = {0: "forward",
+          1: "right",
+          2: "left"}
 
 # display resolution for the app
 disp_W = 1920//2
@@ -33,4 +37,10 @@ def conv_frames(frames):
   return np.array(imgs)
 
 # TODO: add desire features here (desire will be one-hot vector encoded and concatenated to input after convolution)
+def get_desires(path):
+  with open(path, 'r') as f:
+    desires = log_file.read().split("\n")[:-1]
+    f.close()
+  print("Log for desires read")
+  return np.array(desires).astype(np.float)
 

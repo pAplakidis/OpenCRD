@@ -14,14 +14,16 @@ from model import *
 from polylines import *
 
 # TODO: desire for each frame is needed! (more labeling)
-def get_data(video_path, annotations_path):
+def get_data(video_path, annotations_path, desires_path):
   frames = pims.Video(video_path, format="mp4")
 
   path = extract_polylines(annotations_path)
   path = extract_frame_lines(path)
   path = convert_annotations((path_W,path_H), (W,H), path)
 
-  return frames, path
+  desires = get_desires(desires_path)
+
+  return frames, path, desires
 
 def train(frames, path, desires, model):
   # TODO: try NLLLoss() or neg_log_likelihood (from model.py)
@@ -87,12 +89,15 @@ if __name__ == '__main__':
 
   video_files = []
   path_files = []
+  desire_files = []
   for f in listdir(base_dir):
     if f.endswith(".mp4"):
       video_files.append(f)
     elif f.endswith("path.xml"):
       path_files.append(f)
-  video_files, path_files = sorted(video_files), sorted(path_files)
+    elif f.endswith("_desire.txt"):
+      desire_files.append(f)
+  video_files, path_files, desire_files = sorted(video_files), sorted(path_files), sorted(desire_files)
 
   video_files = video_files[:3] # TODO: this is a temp hack, need to get all videos' annotations
   print(video_files)
@@ -102,10 +107,10 @@ if __name__ == '__main__':
 
   model = PathPlanner().to(device).train()
 
-  # TODO: add desires in the training dataset as well
   for i in trange(0, len(video_files)-1): # TODO: remove the -2 when done debugging
     print("[~] Loading from files: %s , %s" % (base_dir+video_files[i], base_dir+path_files[i]))
-    frames, path = get_data(base_dir+video_files[i], base_dir+path_files[i])
+    frames, path, desires = get_data(base_dir+video_files[i], base_dir+path_files[i], base_dir+desire_files[i])
+    # TODO: handle desire here and in model.py (embed them to the net, one-hot vector encoding)
     frames = conv_frames(frames)
     #print(path.shape)
     print()
