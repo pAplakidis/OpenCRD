@@ -32,4 +32,5 @@ def conv_frames(frames):
   print("Frames converted to numpy arrays")
   return np.array(imgs)
 
+# TODO: add desire features here (desire will be one-hot vector encoded and concatenated to input after convolution)
 
