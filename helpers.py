@@ -39,7 +39,7 @@ def conv_frames(frames):
 # TODO: add desire features here (desire will be one-hot vector encoded and concatenated to input after convolution)
 def get_desires(path):
   with open(path, 'r') as f:
-    desires = log_file.read().split("\n")[:-1]
+    desires = f.read().split("\n")[:-1]
     f.close()
   print("Log for desires read")
   return np.array(desires).astype(np.float)
