@@ -53,12 +53,19 @@ def train(frames, path, desires, model):
         flat_path = serialize_polylines(path[j], model.n_coords, model.n_points, model.max_n_lines)
         Y_train.append(flat_path)
 
+      desire = desires[i:i+BS].tolist()
+      desire = one_hot_encode(desire)
+      desire = torch.tensor(desire).float().to(device)  # TODO: might need to convert the one hot encoded desire back into float in order to concat with x
       X = torch.tensor(np.array(X_train)).float().to(device)
       Y = torch.tensor(np.array(Y_train)).float().to(device)
+      print(X.shape)
+      print(Y.shape)
+      print(desire.shape)
+      exit(0)
 
       # forward and backpropagation
       optim.zero_grad()
-      out = model(X)
+      out = model(X, desire)
       loss = neg_log_likelihood(out, Y)
       #loss = loss_function(out, Y)
       loss = loss.mean()
@@ -107,7 +114,7 @@ if __name__ == '__main__':
 
   model = PathPlanner().to(device).train()
 
-  for i in trange(0, len(video_files)): # TODO: remove the -2 when done debugging
+  for i in trange(0, len(video_files)-1): # TODO: remove the -2 when done debugging
     print("[~] Loading from files: %s , %s" % (base_dir+video_files[i], base_dir+path_files[i]))
     frames, path, desires = get_data(base_dir+video_files[i], base_dir+path_files[i], base_dir+desire_files[i])
     # TODO: handle desire here and in model.py (embed them to the net, one-hot vector encoding)
@@ -116,17 +123,16 @@ if __name__ == '__main__':
     print()
     if i == 0:
       all_frames = frames
-      all_paths= path
+      all_paths = path
+      all_desires = desires
     else:
       all_frames = np.concatenate((all_frames, frames), axis=0)
       all_paths = np.concatenate((all_paths, path), axis=0)
-
-    # TODO: problem with city_2 and city_3 path dimensions!!! (they are arrays of lists)
-    #print(all_paths.shape)
+      all_desires = np.concatenate((all_desires, desires), axis=0)
 
   #frames, path = [], [] # free up memory
   print("[+] Training model ...")
-  model = train(all_frames, all_paths[:-1], None, model)
+  model = train(all_frames, all_paths[:-1], all_desires, model)
   print("[+] Trained model on all data files")
   save_model(model_path, model)
 

@@ -20,18 +20,19 @@ class CRDetector(nn.Module):
     self.conv2_bn3 = nn.BatchNorm2d(64)
 
     # Fully connected layers
-    self.fc1 = nn.Linear(64 * 16 * 36, 120) # for 320x160 image 64 channels
+    self.fc1 = nn.Linear(64 * 16 * 36 + 3, 120) # for 320x160 image 64 channels and desire of 3 length one-hot vector
     self.bn1 = nn.BatchNorm1d(num_features=120)
     self.fc2 = nn.Linear(120, 84)
     self.bn2 = nn.BatchNorm1d(num_features=84)
     self.fc3 = nn.Linear(84, 1)
 
-  def forward(self, x):
+  def forward(self, x, desire):
     x = self.pool(F.relu(self.conv2_bn1(self.conv1(x))))
     x = self.pool(F.relu(self.conv2_bn2(self.conv2(x))))
     x = self.pool(F.relu(self.conv2_bn3(self.conv3(x))))
     #print(x.shape)
     x = x.view(-1, self.num_flat_features(x))
+    # TODO: concatenate desire here
     x = F.relu(self.bn1(self.fc1(x)))
     x = F.relu(self.bn2(self.fc2(x)))
     x = torch.sigmoid(self.fc3(x))

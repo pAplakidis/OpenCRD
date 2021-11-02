@@ -41,6 +41,16 @@ def get_desires(path):
   with open(path, 'r') as f:
     desires = f.read().split("\n")[:-1]
     f.close()
+  for i in range(len(desires)):
+    desires[i] = int(desires[i])
   print("Log for desires read")
-  return np.array(desires).astype(np.float)
+  return np.array(desires).astype(np.int)
+
+# specifically for desire (0, 1, 2)
+def one_hot_encode(arr):
+  for i in range(len(arr)):
+    idx = arr[i]
+    arr[i] = [0, 0, 0]
+    arr[i][idx] = 1
+  return arr
 
