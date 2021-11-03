@@ -20,19 +20,18 @@ class CRDetector(nn.Module):
     self.conv2_bn3 = nn.BatchNorm2d(64)
 
     # Fully connected layers
-    self.fc1 = nn.Linear(64 * 16 * 36 + 3, 120) # for 320x160 image 64 channels and desire of 3 length one-hot vector
+    self.fc1 = nn.Linear(64 * 16 * 36, 120) # for 320x160 image 64 channels
     self.bn1 = nn.BatchNorm1d(num_features=120)
     self.fc2 = nn.Linear(120, 84)
     self.bn2 = nn.BatchNorm1d(num_features=84)
     self.fc3 = nn.Linear(84, 1)
 
-  def forward(self, x, desire):
+  def forward(self, x):
     x = self.pool(F.relu(self.conv2_bn1(self.conv1(x))))
     x = self.pool(F.relu(self.conv2_bn2(self.conv2(x))))
     x = self.pool(F.relu(self.conv2_bn3(self.conv3(x))))
     #print(x.shape)
     x = x.view(-1, self.num_flat_features(x))
-    # TODO: concatenate desire here
     x = F.relu(self.bn1(self.fc1(x)))
     x = F.relu(self.bn2(self.fc2(x)))
     x = torch.sigmoid(self.fc3(x))
@@ -358,7 +357,7 @@ class PathPlanner(nn.Module):
     # Fully Connected Layers (TODO: add desire)
     l_relu = nn.LeakyReLU()
     relu = nn.ReLU()
-    fc1 = nn.Linear(self.cnn_output_shape, 2048)
+    fc1 = nn.Linear(self.cnn_output_shape+3, 2048)
     fc_bn1 = nn.BatchNorm1d(2048)
     blinear1 = BayesianLinear(2048, 512)
     b_bn1 = nn.BatchNorm1d(512)
@@ -372,7 +371,7 @@ class PathPlanner(nn.Module):
                          blinear2, b_bn2, relu,
                          blinear3)
 
-  def forward(self, x):
+  def forward(self, x, desire):
     x = self.avgpool1(self.elu(self.bn1(self.conv1(x))))
     x = self.layer1(x)
     x = self.layer2(x)
@@ -381,6 +380,7 @@ class PathPlanner(nn.Module):
     x = self.avgpool2(x)
     #print(x.shape)
     x = x.view(-1, self.num_flat_features(x))
+    x = torch.cat((x, desire), 1)
     x = self.policy(x)
 
     return x

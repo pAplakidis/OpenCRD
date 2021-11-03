@@ -13,7 +13,6 @@ from helpers import *
 from model import *
 from polylines import *
 
-# TODO: desire for each frame is needed! (more labeling)
 def get_data(video_path, annotations_path, desires_path):
   frames = pims.Video(video_path, format="mp4")
 
@@ -28,14 +27,13 @@ def get_data(video_path, annotations_path, desires_path):
 def train(frames, path, desires, model):
   # TODO: try NLLLoss() or neg_log_likelihood (from model.py)
   loss_function = nn.MSELoss
-  optim = torch.optim.Adam(model.parameters(), lr=0.01)
+  optim = torch.optim.Adam(model.parameters(), lr=0.001)  # TODO: lower the learning rate and train on more epochs
 
   # TODO: handle accuracies as well
   losses = []
   epochs = 50
   BS = 128
 
-  # TODO: handle desires as well
   for epoch in range(epochs):
     print("[+] Epoch", epoch+1, "/", epochs)
     epoch_losses = []
@@ -53,15 +51,11 @@ def train(frames, path, desires, model):
         flat_path = serialize_polylines(path[j], model.n_coords, model.n_points, model.max_n_lines)
         Y_train.append(flat_path)
 
-      desire = desires[i:i+BS].tolist()
+      desire = desires[i:i+BS].tolist() # TODO: this is not right since we are dealing with a random sample (maybe add them in the loop) (it works temporarily since all values are 0/forward)
       desire = one_hot_encode(desire)
-      desire = torch.tensor(desire).float().to(device)  # TODO: might need to convert the one hot encoded desire back into float in order to concat with x
+      desire = torch.tensor(desire).float().to(device)
       X = torch.tensor(np.array(X_train)).float().to(device)
       Y = torch.tensor(np.array(Y_train)).float().to(device)
-      print(X.shape)
-      print(Y.shape)
-      print(desire.shape)
-      exit(0)
 
       # forward and backpropagation
       optim.zero_grad()
@@ -92,7 +86,8 @@ if __name__ == '__main__':
   print(device)
 
   base_dir = "data/videos/usable/"
-  model_path = "models/path_planner.pth"
+  #model_path = "models/path_planner.pth"
+  model_path = "models/path_planner_desire.pth"
 
   video_files = []
   path_files = []
@@ -117,7 +112,6 @@ if __name__ == '__main__':
   for i in trange(0, len(video_files)-1): # TODO: remove the -2 when done debugging
     print("[~] Loading from files: %s , %s" % (base_dir+video_files[i], base_dir+path_files[i]))
     frames, path, desires = get_data(base_dir+video_files[i], base_dir+path_files[i], base_dir+desire_files[i])
-    # TODO: handle desire here and in model.py (embed them to the net, one-hot vector encoding)
     frames = conv_frames(frames)
     #print(path.shape)
     print()
