@@ -10,8 +10,6 @@ TASKS for each NN:
 - depth estimation? (for crossroads)
 
 TODO:
-* add desire for path planner
-* debug city_3
 * add path planning to ComboModel
 * add Combo path planning to app.py
 * label more data
