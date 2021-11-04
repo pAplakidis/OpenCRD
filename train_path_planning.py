@@ -27,12 +27,12 @@ def get_data(video_path, annotations_path, desires_path):
 def train(frames, path, desires, model):
   # TODO: try NLLLoss() or neg_log_likelihood (from model.py)
   loss_function = nn.MSELoss
-  optim = torch.optim.Adam(model.parameters(), lr=0.001)  # TODO: lower the learning rate and train on more epochs
+  optim = torch.optim.Adam(model.parameters(), lr=0.001)
 
   # TODO: handle accuracies as well
   losses = []
-  epochs = 50
-  BS = 128
+  epochs = 100
+  BS = 64
 
   for epoch in range(epochs):
     print("[+] Epoch", epoch+1, "/", epochs)
