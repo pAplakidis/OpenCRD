@@ -26,7 +26,7 @@ def get_data(video_path, annotations_path, desires_path):
 
 def train(frames, path, desires, model):
   # TODO: try NLLLoss() or neg_log_likelihood (from model.py)
-  loss_function = nn.MSELoss
+  loss_function = nn.MSELoss()
   optim = torch.optim.Adam(model.parameters(), lr=0.001)
 
   # TODO: handle accuracies as well
@@ -97,7 +97,7 @@ if __name__ == '__main__':
       video_files.append(f)
     elif f.endswith("path.xml"):
       path_files.append(f)
-    elif f.endswith("_desire.txt"):
+    elif f.endswith("desire.txt"):
       desire_files.append(f)
   video_files, path_files, desire_files = sorted(video_files), sorted(path_files), sorted(desire_files)
 

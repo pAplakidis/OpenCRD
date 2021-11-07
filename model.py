@@ -307,7 +307,6 @@ class ResREDetector(nn.Module):
 
 #====================================================================================================
 
-# TODO: don't forget that we also need desire in the dataset and in the input right after the convolutions
 class PathPlanner(nn.Module):
   def __init__(self, num_layers=18, block=ResBlock, image_channels=3):
     assert num_layers in [18, 34, 50, 101, 152], "Unknown ResNet architecture, number of layers must be 18, 34, 50, 101 or 152"
@@ -354,7 +353,7 @@ class PathPlanner(nn.Module):
 
     self.avgpool2 = nn.AvgPool2d(1, 1)
 
-    # Fully Connected Layers (TODO: add desire)
+    # Fully Connected Layers
     l_relu = nn.LeakyReLU()
     relu = nn.ReLU()
     fc1 = nn.Linear(self.cnn_output_shape+3, 2048)
@@ -456,8 +455,9 @@ class ComboModel(nn.Module):
     # Fully Connected Layers
     self.cr_head = self.get_cr_head()
     self.re_head = self.get_re_head()
+    self.path_head = self.get_path_head()
 
-  def forward(self, x):
+  def forward(self, x, desire):
     x = self.avgpool1(self.elu(self.bn1(self.conv1(x))))
     x = self.layer1(x)
     x = self.layer2(x)
@@ -466,9 +466,11 @@ class ComboModel(nn.Module):
     x = self.avgpool2(x)
     #print(x.shape)
     x = x.view(-1, self.num_flat_features(x))
+    x_desire = torch.cat((x, desire), 1)
     cr = torch.sigmoid(self.cr_head(x)) # TODO: we get error here
     re = self.re_head(x)
-    return [cr, re]
+    path = self.path_head(x_desire)
+    return [cr, re, path]
 
   def get_cr_head(self):
     relu = nn.ReLU()
@@ -526,6 +528,24 @@ class ComboModel(nn.Module):
 
     return head
 
+  def get_path_head(self):
+    relu = nn.ReLU()
+    fc1 = nn.Linear(self.cnn_output_shape+3, 2048)
+    fc_bn1 = nn.BatchNorm1d(2048)
+    blinear1 = BayesianLinear(2048, 512)
+    b_bn1 = nn.BatchNorm1d(512)
+    blinear2 = BayesianLinear(512, 128)
+    b_bn2 = nn.BatchNorm1d(128)
+    blinear3 = BayesianLinear(128, self.n_coords*self.n_points*self.max_n_lines)
+
+    # driving policy (actual path planner)
+    head = nn.Sequential(fc1, fc_bn1, relu,
+                         blinear1, b_bn1, relu,
+                         blinear2, b_bn2, relu,
+                         blinear3)
+
+    return head
+
   def make_layers(self, num_layers, block, num_residual_blocks, intermediate_channels, stride):
     layers = []
     identity_downsample = nn.Sequential(nn.Conv2d(self.in_channels, intermediate_channels*self.expansion, kernel_size=1, stride=stride),
@@ -561,14 +581,16 @@ class ComboLoss(nn.Module):
     self.device = device
     self.log_vars = nn.Parameter(torch.zeros((task_num)))
 
-  def forward(self, preds, cr, re):
+  def forward(self, preds, cr, re, path):
     cr_loss = nn.BCELoss()
     #re_loss = nn.NLLLoss() # TODO: this doesn't work yet
     re_loss = nn.MSELoss()
+    path_loss = nn.MSELoss()
 
     loss0 = cr_loss(preds[0], cr)
     #loss1 = re_loss(preds[1], re)
     loss1 = neg_log_likelihood(preds[1], re)
+    loss2 = path_loss(preds[2], path)
 
     # TODO: need better multitask loss (weighted sum maybe)
     precision0 = torch.exp(-self.log_vars[0])
@@ -577,7 +599,10 @@ class ComboLoss(nn.Module):
     precision1 = torch.exp(-self.log_vars[1])
     #loss1 = precision1*loss1 + self.log_vars[1]
 
-    loss = loss0 + loss1
+    precision2 = torch.exp(-self.log_vars[2])
+    #loss2 = precision2*loss2 + self.log_vars[2]
+
+    loss = loss0 + loss1 + loss2
     #loss = loss.mean()
 
     return loss.to(self.device)
