@@ -583,14 +583,14 @@ class ComboLoss(nn.Module):
 
   def forward(self, preds, cr, re, path):
     cr_loss = nn.BCELoss()
-    #re_loss = nn.NLLLoss() # TODO: this doesn't work yet
     re_loss = nn.MSELoss()
     path_loss = nn.MSELoss()
 
     loss0 = cr_loss(preds[0], cr)
     #loss1 = re_loss(preds[1], re)
+    #loss2 = path_loss(preds[1], path)
     loss1 = neg_log_likelihood(preds[1], re)
-    loss2 = path_loss(preds[2], path)
+    loss2 = neg_log_likelihood(preds[2], path)
 
     # TODO: need better multitask loss (weighted sum maybe)
     precision0 = torch.exp(-self.log_vars[0])
