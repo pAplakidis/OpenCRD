@@ -10,7 +10,7 @@ TASKS for each NN:
 - depth estimation? (for crossroads)
 
 TODO:
-* add path planning to ComboModel
+* add path planning to ComboModel (debug flat_path, "same" code works for path_planner but not for combo_model)
 * add Combo path planning to app.py
 * label more data
 
