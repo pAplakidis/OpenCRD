@@ -68,9 +68,9 @@ def train(frames, labels, annotations, path, desires, model):
         frame = np.moveaxis(frame, -1, 0) # [batch_size, channels, height, width]
         X_train.append(frame)
         Y1_train.append([labels[j]])
-        flat_annot = serialize_polylines(annotations[j], model.n_coords, model.n_points, model.max_n_lines)
+        flat_annot = serialize_polylines(annotations[j], model.re_n_coords, model.re_n_points, model.re_max_n_lines)
         Y2_train.append(flat_annot)
-        flat_path = serialize_polylines(path[j], model.n_coords, model.n_points, model.max_n_lines)
+        flat_path = serialize_polylines(path[j], model.pth_n_coords, model.pth_n_points, model.pth_max_n_lines)
         Y3_train.append(flat_path)
 
       # TODO: this is a temp hack since all desires are 0

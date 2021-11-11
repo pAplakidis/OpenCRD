@@ -410,10 +410,15 @@ class ComboModel(nn.Module):
     assert num_layers in [18, 34, 50, 101, 152], "Unknown ResNet architecture, number of layers must be 18, 34, 50, 101 or 152"
     super(ComboModel, self).__init__()
 
-    # polylines' shape
-    self.n_coords = 2  # 2 coordinates: x,y
-    self.n_points = 4  # number of points of each polyline
-    self.max_n_lines = 6 # max number of polylines per frame
+    # road edge polylines' shape
+    self.re_n_coords = 2  # 2 coordinates: x,y
+    self.re_n_points = 4  # number of points of each polyline
+    self.re_max_n_lines = 6 # max number of polylines per frame
+
+    # path polylines' shape
+    self.pth_n_coords = 2  # 2 coordinates: x,y
+    self.pth_n_points = 8  # number of points of each polyline
+    self.pth_max_n_lines = 1 # max number of polylines per frame
 
     self.num_layers = num_layers
     self.cnn_output_shape = 512*5*10  # shape of the output of the cnn (input for fully connected layers)
