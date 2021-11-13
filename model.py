@@ -524,7 +524,7 @@ class ComboModel(nn.Module):
     b_bn1 = nn.BatchNorm1d(512)
     blinear2 = BayesianLinear(512, 128)
     b_bn2 = nn.BatchNorm1d(128)
-    blinear3 = BayesianLinear(128, self.n_coords*self.n_points*self.max_n_lines)
+    blinear3 = BayesianLinear(128, self.re_n_coords*self.re_n_points*self.re_max_n_lines)
 
     head = nn.Sequential(fc1, fc_bn1, relu,
                          blinear1, b_bn1, relu,
@@ -541,7 +541,7 @@ class ComboModel(nn.Module):
     b_bn1 = nn.BatchNorm1d(512)
     blinear2 = BayesianLinear(512, 128)
     b_bn2 = nn.BatchNorm1d(128)
-    blinear3 = BayesianLinear(128, self.n_coords*self.n_points*self.max_n_lines)
+    blinear3 = BayesianLinear(128, self.pth_n_coords*self.pth_n_points*self.pth_max_n_lines)
 
     # driving policy (actual path planner)
     head = nn.Sequential(fc1, fc_bn1, relu,

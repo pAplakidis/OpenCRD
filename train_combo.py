@@ -48,7 +48,7 @@ def train(frames, labels, annotations, path, desires, model):
   if model.num_layers == 50:
     BS = 8
   else:
-    BS = 32
+    BS = 16
   
   print("[+] Training model ...")
   for epoch in range(epochs):
@@ -110,7 +110,7 @@ def train(frames, labels, annotations, path, desires, model):
   plt.show()
 
   output_names = ['crossroad', 'road_edges', "path"]
-  save_onnx("models/combo_model.onnx", model, X, output_names)
+  #save_onnx("models/combo_model.onnx", model, X, output_names) # TODO: this needs desire as well
 
   return model
 
