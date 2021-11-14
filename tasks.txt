@@ -2,7 +2,7 @@ TASKS for each NN:
 
 * Primary:
 - detect crossroads (DONE)
-- predict path in the intersections based on the desired direction (forward, left, right)
+- predict path in the intersections based on the desired direction (forward, left, right) (DONE)
 
 * Secondary:
 - road edge detection (DONE)
@@ -10,7 +10,5 @@ TASKS for each NN:
 - depth estimation? (for crossroads)
 
 TODO:
-* add path planning to ComboModel (debug flat_path, "same" code works for path_planner but not for combo_model)
-* add Combo path planning to app.py
 * label more data
 

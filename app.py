@@ -122,6 +122,11 @@ if __name__ == '__main__':
         X_test = np.array(X_test)
         X = torch.tensor(X_test).float().to(device)
 
+        # TODO: maybe add controls for desire
+        desire = [0, 0]
+        desire = one_hot_encode(desire)
+        desire = torch.tensor(desire).float().to(device)
+
         # individual network for each task
         if not combo:
           Y_pred = cr_model(X)
@@ -137,7 +142,7 @@ if __name__ == '__main__':
           road_edges = deserialize_polylines(Y_pred1[1].cpu().detach().numpy(), re_model.n_coords, re_model.n_points, re_model.max_n_lines)
           road_edges = convert_polylines((W,H), (disp_W,disp_H), road_edges)  # convert the 320x160 lines to display resolution
 
-          Y_pred2 = path_planner(X)
+          Y_pred2 = path_planner(X, desire)
           print("[~] Predicted value for path_planning")
           print(Y_pred2[1])
           pred_path = deserialize_polylines(Y_pred2[1].cpu().detach().numpy(), path_planner.n_coords, path_planner.n_points, path_planner.max_n_lines)
@@ -145,9 +150,6 @@ if __name__ == '__main__':
 
         # multitask network
         else:
-          desire = [0, 0]
-          desire = one_hot_encode(desire)
-          desire = torch.tensor(desire).float().to(device)
           out = combo_model(X, desire)  # TODO: feed desire to the model
           Y_pred = out[0]
           Y_pred1 = out[1]
