@@ -19,7 +19,6 @@ if __name__ == '__main__':
   device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
   print(device)
 
-
   # run with MODE="combo" ./app.py ... to use combo model
   mode = os.getenv('MODE')
   if mode == None:
@@ -146,9 +145,13 @@ if __name__ == '__main__':
 
         # multitask network
         else:
-          out = combo_model(X)
+          desire = [0, 0]
+          desire = one_hot_encode(desire)
+          desire = torch.tensor(desire).float().to(device)
+          out = combo_model(X, desire)  # TODO: feed desire to the model
           Y_pred = out[0]
           Y_pred1 = out[1]
+          Y_pred2 = out[2]
 
           print("[~] Predicted value for cr_detection:", Y_pred[1].item())
           cat = torch.where(Y_pred >= 0.8, x, y)
@@ -157,9 +160,14 @@ if __name__ == '__main__':
           conf = Y_pred[1].item()
 
           print("[~] Predicted value for re_detection")
-          print(Y_pred1[1])
-          road_edges = deserialize_polylines(Y_pred1[1].cpu().detach().numpy(), combo_model.n_coords, combo_model.n_points, combo_model.max_n_lines)
+          print(Y_pred2[1])
+          road_edges = deserialize_polylines(Y_pred1[1].cpu().detach().numpy(), combo_model.re_n_coords, combo_model.re_n_points, combo_model.re_max_n_lines)
           road_edges = convert_polylines((W,H), (disp_W,disp_H), road_edges)  # convert the 320x160 lines to display resolution
+
+          print("[~] Predicted value for path planning")
+          print(Y_pred2[1])
+          pred_path = deserialize_polylines(Y_pred2[1].cpu().detach().numpy(), combo_model.pth_n_coords, combo_model.pth_n_points, combo_model.pth_max_n_lines)
+          pred_path = convert_polylines((W,H), (disp_W,disp_H), pred_path)  # convert the 320x160 lines to display resolution
 
         # NOTE: the rest is just display code
         frames[1] = cv2.resize(frames[1], (disp_W,disp_H))
