@@ -123,8 +123,8 @@ if __name__ == '__main__':
         X = torch.tensor(X_test).float().to(device)
 
         # TODO: maybe add controls for desire
-        desire = [0, 0]
-        desire = one_hot_encode(desire)
+        desire_arr = [0, 0]
+        desire = one_hot_encode(desire_arr.copy())
         desire = torch.tensor(desire).float().to(device)
 
         # individual network for each task
@@ -150,7 +150,7 @@ if __name__ == '__main__':
 
         # multitask network
         else:
-          out = combo_model(X, desire)  # TODO: feed desire to the model
+          out = combo_model(X, desire)
           Y_pred = out[0]
           Y_pred1 = out[1]
           Y_pred2 = out[2]
@@ -199,6 +199,14 @@ if __name__ == '__main__':
         text = "LABEL: %s, %d" % (pred, int(conf * 100))
         frames[1] = cv2.putText(frames[1], text, org, font,  
                           fontScale, color, thickness, cv2.LINE_AA)
+
+        # display desire text
+        org = (25, 55)
+        color = (255, 0, 0)
+        thickness = 2
+        text = "DESIRE: %s, %d" % (DESIRE[desire_arr[1]], desire_arr[1])
+        frames[1] = cv2.putText(frames[1], text, org, font,
+                                fontScale, color, thickness, cv2.LINE_AA)
 
         # display fps
         new_frame_time = time.time()
