@@ -60,7 +60,8 @@ if __name__ == '__main__':
     re_model.eval()
 
     # load Path-Planner model
-    path_planner_path = "models/path_planner.pth"
+    #path_planner_path = "models/path_planner.pth"
+    path_planner_path = "models/path_planner_desire.pth"
     path_planner = PathPlanner()
     path_planner = load_model(path_planner_path, path_planner).to(device)
     path_planner.eval()
