@@ -10,5 +10,7 @@ TASKS for each NN:
 - depth estimation? (for crossroads)
 
 TODO:
+* evaluation after training
+* retrain on the same data, more epochs
 * label more data
 

@@ -1,8 +1,12 @@
+These are just some early ideas on self-driving cars based on Tesla's and Comma.ai's projects
+
 Self-Driving Car Tasks:
 * Localization and Mapping (where am I?)
 * Scene Understanding (where is everyone else?)
 * Movement Planning (how do I get from A to B?)
 * Driver State (what's the driver up to?)
+
+NOTE: all these are not really needed in end-to-end
 
 
 SLAM and autonomy (where am I?):
@@ -13,7 +17,7 @@ SLAM and autonomy (where am I?):
 
 - End-to-End Visual Odometry:
 left video sequence     right video sequence
-conbolution             convolution
+convolution             convolution
 elemtwise product of 2 convolutions
 convolution + pooling
 flatten

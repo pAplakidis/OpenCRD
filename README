@@ -5,39 +5,19 @@ Subject: Monocular Crossroad Detection and Path Prediction (Self-Driving Cars)
 
 GOAL -> Use single camera and solve the following tasks:
 *build a net that detects corssroads (+ how far they are?, might not be possible without SLAM, so may not do that)
-*build a net that finds different paths in crossroads (maybe use a SLAM library for that or build my own pathfinder)(not something fancy, just need to draw path of turn, then it's back to basic cruising) 
-*select a path based on GPS data (just the command: left, right, straight)
-
-NOTES:
-- always full stop in crossroads for safety, no matter the sign (might be good to detect it though)
-- maybe add small side front facing cameras and SLAM based on all three cameras for crossroad navigation
-- either make the images/frames from the cameras panoramic (might be slower but it works with monocular SLAM) or use SLAM for 3 cameras (better precision)
-- upload labeled data somewhere
+*build a net that finds different paths on crossroads (not something fancy, just need to draw path of turn, then it's back to basic cruising) 
+*select a path based on desire data (just the command: left, right, forward) (maybe add GPS support)
 
 IMPORTANT:
-- no more than one camera or SLAM needed since this is just path prediction and not navigation
+- no more than one camera or SLAM needed since this is just end-to-end path prediction and not navigation
 - need lots of varied datasets (need to label them as well, <crossroad/no-crossroad>, <path car followed>)
 
-- DIFFERENT TYPES OF CROSSROADS (net's outputs cannot be binary)
-- get argmax(outputs) to get the estimated crossroad type (need a dictionary as well)
-OR
-- just detect whether there is a crossroad of any type (1 output for conv net)
-- get GPS "desire" for direction
-- no need to know the type if you already know where to turn
-- extra label "desire" needed along with the path for that desire (maybe label an image/crossroad multiple times (becomes different training data tuple) with different desire/path, this may not work if we haven't gone through the same crossroad multiple times in multiple directions)
-
-- Convolutional Neural Net for Detection and Recurrent (using 2 images at a time?) for path planning (need to ground truth desire as well, for later GPS usage)
+- Convolutional Neural Net for Detection and Recurrent (using 2 images at a time?<RNN>) for path planning (need to ground truth desire as well)
 - check out [https://medium.com/@mankaran32/end-to-end-motion-planning-with-deep-learning-comma-ais-approach-5886268515d3 ]
-- for drawing the path lines on the images check out modeld implementation (you would just need to project the lane to camera. can use height = 1.22m and yaw and pitch from camera calibration to construct projection matrix) [ https://github.com/littlemountainman/modeld/blob/3340d7f86c1e5258e890af02989eb72ae39a208f/common/lanes_image_space.py#L65 ]
 
-TODO:
-- make a script that saves each frame into an image in the images folder (need to figure out how to keep the labels, maybe a big log.csv file with image names and labels)
-- for the path finder, make a script to extract the frames with crossroads (we only need those to train for navigation) + labels?(that can be done later)
-- preprocess the data (need YUV images for the networks)
-- make a training script that goes through all videos and their text-files (labels) and puts the data together for training (or use an existing one)
-- draw path line in image and bird's eye view
-- design and train the conv-neural-net (repeat until accuracy is correct) (don't forget to make a test dataset)
+Ideas for the future:
 - find a good GPS API and just query it for directions
+- build a localizer and use that to autolabel path data based on GPUS, IMU, etc (more accurate)
 
 Inspiration Content/Resources:
 - Comma.ai Research [ https://github.com/commaai/research ]

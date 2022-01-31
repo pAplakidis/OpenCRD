@@ -25,7 +25,6 @@ def get_data(video_path, annotations_path, desires_path):
   return frames, path, desires
 
 def train(frames, path, desires, model):
-  # TODO: try NLLLoss() or neg_log_likelihood (from model.py)
   loss_function = nn.MSELoss()
   optim = torch.optim.Adam(model.parameters(), lr=0.001)
 
