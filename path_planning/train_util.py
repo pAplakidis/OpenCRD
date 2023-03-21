@@ -15,8 +15,8 @@ from util import *
 from model import *
 
 # net input resolution
-W = 480
-H = 360
+W = 224
+H = 224
 
 # display resolution
 d_W = 1920 // 2

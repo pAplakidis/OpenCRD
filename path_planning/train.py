@@ -16,5 +16,11 @@ if __name__ == "__main__":
   train_loader = DataLoader(train_set, batch_size=12, shuffle=True, num_workers=0)
   val_loader = DataLoader(val_set, batch_size=12, shuffle=True, num_workers=0)
 
+  model = PathPlanner()
+  print(model)
+  trainer = Trainer()
+
   dataset.cap.release()
+  train_set.cap.release()
+  val_set.cap.release()
   cv2.destroyAllWindows()
