@@ -3,6 +3,7 @@ import os, sys
 import cv2
 import numpy as np
 from tqdm import tqdm
+from datetime import date
 
 import torch
 import torch.nn as nn
@@ -23,7 +24,6 @@ d_W = 1920 // 2
 d_H = 1080 // 2
 
 
-# TODO: length of poses and frames do not match (FIX DATA COLLECTOR)
 class PathPlannerDataset(Dataset):
     def __init__(self, base_dir):
       super(Dataset, self).__init__()
@@ -50,9 +50,30 @@ class PathPlannerDataset(Dataset):
 
 
 class Trainer:
-  def __init__(self):
-    pass
+  def __init__(self, device, model, train_loader, val_loader, model_path, eval=True, early_stop=False, writer_path=None):
+    self.eval = eval
+    self.early_stop = early_stop
+    self.model_path = model_path
+    if not writer_path:
+      today = str(date.today())
+      writer_path = "runs/" + today
+    print("[+] Tensorboard output path:", writer_path)
 
+    self.writer = SummaryWriter(writer_path)
+    self.device = device
+    print("[+] Device:", self.device)
+    self.model = model.to(self.device)
+    self.train_loader = train_loader
+    self.val_loader = val_loader
+
+  def save_checkpoint(state, path):
+    torch.save(state, path)
+    print("Checkpoint saved at", path)
+
+  def train(self, epochs=100, lr=1e-3, path=None):
+    self.model.train()
+    loss_func = nn.MSELoss()
+    optim = torch.optim.Adam(self.model.parameters(), lr=lr)
 
 if __name__ == "__main__":
   dataset = PathPlannerDataset("../data/sim/8/")
