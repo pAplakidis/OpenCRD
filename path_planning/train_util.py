@@ -46,7 +46,7 @@ class PathPlannerDataset(Dataset):
       ret, frame = self.cap.read()
       frame = cv2.resize(frame, (W,H))
       frame = np.moveaxis(frame, -1, 0)
-      return frame, self.local_path[idx:LOOKAHEAD+idx]  # TODO: use path for now, later on predict poses
+      return {"image": frame, "path": self.local_path[idx:LOOKAHEAD+idx]}  # TODO: use path for now, later on predict poses
 
 
 class Trainer:
@@ -71,9 +71,59 @@ class Trainer:
     print("Checkpoint saved at", path)
 
   def train(self, epochs=100, lr=1e-3, path=None):
-    self.model.train()
     loss_func = nn.MSELoss()
     optim = torch.optim.Adam(self.model.parameters(), lr=lr)
+
+    def eval(val_losses, train=False):
+      pass
+
+    losses = []
+    vlosses = []
+
+    try:
+      print("[+] Training ...")
+      l_idx = 0
+      for epoch in range(epochs):
+        self.model.train()
+        print("[->] Epoch %d/%d"%(epoch+1, epochs))
+        epoch_losses = []
+        epoch_vlosses = []
+
+        for i_batch, sample_batched in enumerate((t := tqdm(self.train_loader))):
+          X = sample_batched['image'].float().to(self.device)
+          Y = sample_batched['path'].float().to(self.device)
+
+          optim.zero_grad()
+          out = self.model(X)
+          loss = loss_func(out, Y)
+
+          self.writer.add_scalar("running loss", loss.item(), l_idx)
+          epoch_losses.append(loss.item())
+
+          loss.backward()
+          optim.step()
+
+          t.set_description("Batch Training Loss: %.2f"%(loss.item()))
+          l_idx += 1
+
+        avg_epoch_loss = np.array(epoch_losses).mean()
+        losses.append(avg_epoch_loss)
+        print("[=>] Epoch average training loss: %.4f"%(avg_epoch_loss))
+
+        if self.early_stop:
+          epoch_vlosses = eval(epoch_vlosses, train=True)
+          avg_epoch_vloss = np.array(epoch_vlosses).mean()
+          vlosses.append(avg_epoch_vloss)
+
+    except KeyboardInterrupt:
+      print("[~] Training stopped by user")
+    print("[+] Training Done")
+
+    # TODO: save model
+
+    for idx, l in enumerate(losses):
+      self.writer.add_scalar("final training loss", l, idx)
+
 
 if __name__ == "__main__":
   dataset = PathPlannerDataset("../data/sim/8/")
