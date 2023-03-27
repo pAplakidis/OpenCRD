@@ -14,6 +14,7 @@ from torchvision import utils
 
 from util import *
 from model import *
+from renderer import *
 
 # net input resolution
 W = 224
@@ -126,9 +127,11 @@ class Trainer:
 
 
 if __name__ == "__main__":
+  renderer = Renderer3D(RW, RH)
   dataset = PathPlannerDataset("../data/sim/8/")
   print(len(dataset))
-  img, path = dataset[500]
+  samp = dataset[500]
+  img, path = samp["image"], samp["path"]
   print(img.shape)
   print(path.shape)
 
@@ -136,7 +139,9 @@ if __name__ == "__main__":
   disp_img = cv2.resize(disp_img, (d_W,d_H))
   print(disp_img.shape)
 
-  draw_path(path, disp_img)
+  renderer.draw(path)
+
+  #draw_path(path, disp_img)
   cv2.imshow("DISPLAY", disp_img)
   cv2.waitKey(0)
 
