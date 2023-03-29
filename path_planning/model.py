@@ -28,3 +28,12 @@ class PathPlanner(nn.Module):
   def forward(self, x):
     x = self.vision(x)
     return x
+
+def save_model(path, model):
+ torch.save(model.state_dict(), path)
+ print("Model saved at", path)
+
+def load_model(path, model):
+  model.load_state_dict(torch.load(path))
+  print("Loaded model from", path)
+  return model

@@ -39,7 +39,7 @@ class PathPlannerDataset(Dataset):
       self.cap = cv2.VideoCapture(self.video_path)
 
     def __len__(self):
-      return int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
+      return int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT)) - LOOKAHEAD
 
     def __getitem__(self, idx):
       #self.cap.set(cv2.CAP_PROP_POS_FRAMES, idx-1)
@@ -51,8 +51,7 @@ class PathPlannerDataset(Dataset):
 
 
 class Trainer:
-  def __init__(self, device, model, train_loader, val_loader, model_path, eval=True, early_stop=False, writer_path=None):
-    self.eval = eval
+  def __init__(self, device, model, train_loader, val_loader, model_path, writer_path=None, early_stop=False):
     self.early_stop = early_stop
     self.model_path = model_path
     if not writer_path:
@@ -76,7 +75,28 @@ class Trainer:
     optim = torch.optim.Adam(self.model.parameters(), lr=lr)
 
     def eval(val_losses, train=False):
-      pass
+      print("[+] Evaluating ...")
+      with torch.no_grad():
+        try:
+          self.model.eval()
+          l_idx = 0
+          for i_batch, sample_batched in enumerate((t := tqdm(self.val_loader))):
+            X = sample_batched['image'].float().to(self.device)
+            Y = sample_batched['path'].float().to(self.device)
+
+            out = self.model(X)
+            loss = loss_func(out, Y)
+
+            if not train:
+              self.writer.add_scalar('evaluation loss', loss.item(), l_idx)
+            val_losses.append(loss.item())
+            t.set_description("Batch Loss: %.2f"%(loss.item()))
+            l_idx += 1
+
+        except KeyboardInterrupt:
+          print("[~] Evaluation stopped by user")
+      print("[+] Evaluation Done")
+      return val_losses
 
     losses = []
     vlosses = []
@@ -119,8 +139,7 @@ class Trainer:
     except KeyboardInterrupt:
       print("[~] Training stopped by user")
     print("[+] Training Done")
-
-    # TODO: save model
+    save_model(self.model_path, self.model)
 
     for idx, l in enumerate(losses):
       self.writer.add_scalar("final training loss", l, idx)

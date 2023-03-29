@@ -3,6 +3,8 @@ from model import *
 from train_util import *
 from util import *
 
+model_path = "models/path_planner.pth"
+writer_path = "runs/test"
 
 if __name__ == "__main__":
   device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -19,7 +21,8 @@ if __name__ == "__main__":
   # train model
   model = PathPlanner()
   print(model)
-  trainer = Trainer()
+  trainer = Trainer(device, model, train_loader, val_loader, model_path, writer_path)
+  trainer.train()
 
   dataset.cap.release()
   cv2.destroyAllWindows()

@@ -12,6 +12,8 @@ class Renderer3D:
     self.poses = None
     self.poses_q = Queue()
     self.path_q = Queue()
+    self.path = None
+    self.poses = None
     self.p = Process(target=self.renderer_main, args=(self.poses_q, self.path_q,))
     #self.p.daemon = True
     self.p.start()
@@ -30,6 +32,7 @@ class Renderer3D:
     self.dcam.SetBounds(0.0, 1.0, 0.0, 1.0, -640.0/480.0)
     self.dcam.SetHandler(handler)
 
+  # TODO: follow the car from a top-down view
   def renderer_main(self, poses_q, path_q):
     print("[+] Initializing 3D Display ...")
     self.display_init()
@@ -47,7 +50,7 @@ class Renderer3D:
       gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
       self.dcam.Activate(self.scam)
 
-      if self.path is not None:
+      if  self.path is not None:
         # draw car current pose
         if self.poses is not None:
           gl.glLineWidth(1)
