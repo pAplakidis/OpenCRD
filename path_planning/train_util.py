@@ -5,6 +5,11 @@ import numpy as np
 from tqdm import tqdm
 from datetime import date
 
+import io
+import plotly.io as pio
+import plotly.express as px
+import plotly.graph_objects as go
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -31,11 +36,16 @@ class PathPlannerDataset(Dataset):
       self.base_dir = base_dir  # TODO: for now just use one clip
       self.video_path = base_dir + "video.mp4"
       self.poses_path = base_dir + "poses.npy"
+      self.framepath_path = base_dir + "frame_paths.npy"
 
+      # load meta-data (poses, paths, etc)
       self.poses = np.load(self.poses_path)
-      self.local_poses, self.local_path = get_local_poses(self.poses)
-      print(self.local_path.shape)
+      self.frame_paths = np.load(self.framepath_path)
+      self.local_poses, self.local_path, self.local_orientations = get_relative_poses(self.poses)
+      #print(self.local_path.shape)
+      print("Frame Paths (2D):", self.frame_paths.shape)
 
+      # load video
       self.cap = cv2.VideoCapture(self.video_path)
 
     def __len__(self):
@@ -47,7 +57,8 @@ class PathPlannerDataset(Dataset):
       ret, frame = self.cap.read()
       frame = cv2.resize(frame, (W,H))
       frame = np.moveaxis(frame, -1, 0)
-      return {"image": frame, "path": self.local_path[idx:LOOKAHEAD+idx]}  # TODO: use path for now, later on predict poses
+      #return {"image": frame, "path": self.local_path[idx:LOOKAHEAD+idx]}  # TODO: use path for now, later on predict poses
+      return {"image": frame, "path": self.frame_paths[idx]}
 
 
 class Trainer:
@@ -71,7 +82,8 @@ class Trainer:
     print("Checkpoint saved at", path)
 
   def train(self, epochs=100, lr=1e-3, path=None):
-    loss_func = nn.MSELoss()
+    #loss_func = nn.MSELoss()
+    loss_func = MTPLoss(self.model.n_paths)
     optim = torch.optim.Adam(self.model.parameters(), lr=lr)
 
     def eval(val_losses, train=False):
@@ -116,6 +128,8 @@ class Trainer:
 
           optim.zero_grad()
           out = self.model(X)
+          #print("Model output: ", out.shape)
+          #print("Ground Truth: ", Y.shape)
           loss = loss_func(out, Y)
 
           self.writer.add_scalar("running loss", loss.item(), l_idx)
@@ -146,19 +160,28 @@ class Trainer:
 
 
 if __name__ == "__main__":
-  renderer = Renderer3D(RW, RH)
-  dataset = PathPlannerDataset("../data/sim/8/")
+  #renderer = Renderer3D(RW, RH)
+  dataset = PathPlannerDataset("../data/sim/22/")
   print(len(dataset))
-  samp = dataset[500]
+  samp = dataset[100]
   img, path = samp["image"], samp["path"]
   print(img.shape)
   print(path.shape)
+
+  # plot path
+  fig = go.FigureWidget()
+  fig.add_scatter()
+  fig.update_layout(xaxis_range=[-50,50])
+  fig.update_layout(yaxis_range=[0,50])
+  fig.data[0].x = path[:, 0]
+  fig.data[0].y = path[:, 1]
+  figshow(fig)
 
   disp_img = np.moveaxis(img, 0, -1)
   disp_img = cv2.resize(disp_img, (d_W,d_H))
   print(disp_img.shape)
 
-  renderer.draw(path)
+  #renderer.draw(path)
 
   #draw_path(path, disp_img)
   cv2.imshow("DISPLAY", disp_img)

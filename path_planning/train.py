@@ -11,10 +11,10 @@ if __name__ == "__main__":
   print("[+] Using device:", device)
 
   # get data
-  dataset = PathPlannerDataset("../data/sim/8/")
+  dataset = PathPlannerDataset("../data/sim/22/")
   train_split = int(len(dataset)*0.7) # 70% training data
   val_split = int(len(dataset)*0.3)   # 30% validation data
-  train_set, val_set = random_split(dataset, [train_split, val_split])
+  train_set, val_set = random_split(dataset, [train_split+1, val_split])
   train_loader = DataLoader(train_set, batch_size=12, shuffle=True, num_workers=0)
   val_loader = DataLoader(val_set, batch_size=12, shuffle=True, num_workers=0)
 
