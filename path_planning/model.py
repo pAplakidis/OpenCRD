@@ -152,7 +152,8 @@ class MTPLoss:
   # compute the average of l2 norms of each row in the tensor
   @staticmethod
   def _compute_ave_l2_norms(tensor):
-    l2_norms = torch.norm(tensor, p=2, dim=2)
+    #l2_norms = torch.norm(tensor, p=2, dim=2)
+    l2_norms = torch.norm(tensor, p=2, dim=1)
     avg_distance = torch.mean(l2_norms)
     return avg_distance.item()
 
@@ -199,19 +200,16 @@ class MTPLoss:
     trajectories, modes = self._get_trajectory_and_modes(predictions)
 
     for batch_idx in range(predictions.shape[0]):
-      #print("Ground Truth:", targets[batch_idx].shape)
-      #print("Model Prediction:", trajectories[batch_idx].shape)
       angles = self._compute_angles_from_ground_truth(target=targets[batch_idx], trajectories=trajectories[batch_idx])
       best_mode = self._compute_best_mode(angles, target=targets[batch_idx], trajectories=trajectories[batch_idx])
       best_mode_trajectory = trajectories[batch_idx, best_mode, :].unsqueeze(0)
 
-      regression_loss = F.smooth_l1_loss(best_mode_trajectory, targets[batch_idx])
+      regression_loss = F.smooth_l1_loss(best_mode_trajectory[0], targets[batch_idx])
       mode_probabilities = modes[batch_idx].unsqueeze(0)
       best_mode_target = torch.tensor([best_mode], device=predictions.device)
       classification_loss = F.cross_entropy(mode_probabilities, best_mode_target)
       
       loss = classification_loss + self.regression_loss_weight * regression_loss
-      print("Loss:", loss)
       #deg = abs(math.atan(targets[batch_losses][0][-1][1]/targets[batch_idx][0][-1][0])*180/math.pi)
       #deg_wegith = math.exp(deg/20)
       #loss = loss * deg_weight

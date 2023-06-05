@@ -58,6 +58,9 @@ class PathPlannerDataset(Dataset):
       frame = cv2.resize(frame, (W,H))
       frame = np.moveaxis(frame, -1, 0)
       #return {"image": frame, "path": self.local_path[idx:LOOKAHEAD+idx]}  # TODO: use path for now, later on predict poses
+      # TODO: this is a tempfix, we need to cleanup data (either check for nan during data-collection or training)
+      if np.isnan(self.frame_paths[idx]).any():
+        self.frame_paths[idx] = np.zeros_like(self.frame_paths[idx])
       return {"image": frame, "path": self.frame_paths[idx]}
 
 
@@ -93,8 +96,8 @@ class Trainer:
           self.model.eval()
           l_idx = 0
           for i_batch, sample_batched in enumerate((t := tqdm(self.val_loader))):
-            X = sample_batched['image'].float().to(self.device)
-            Y = sample_batched['path'].float().to(self.device)
+            X = torch.tensor(sample_batched['image']).float().to(self.device)
+            Y = torch.tensor(sample_batched['path']).float().to(self.device)
 
             out = self.model(X)
             loss = loss_func(out, Y)
@@ -118,13 +121,13 @@ class Trainer:
       l_idx = 0
       for epoch in range(epochs):
         self.model.train()
-        print("[->] Epoch %d/%d"%(epoch+1, epochs))
+        print("[=>] Epoch %d/%d"%(epoch+1, epochs))
         epoch_losses = []
         epoch_vlosses = []
 
         for i_batch, sample_batched in enumerate((t := tqdm(self.train_loader))):
-          X = sample_batched['image'].float().to(self.device)
-          Y = sample_batched['path'].float().to(self.device)
+          X = torch.tensor(sample_batched['image']).float().to(self.device)
+          Y = torch.tensor(sample_batched['path']).float().to(self.device)
 
           optim.zero_grad()
           out = self.model(X)
@@ -143,7 +146,7 @@ class Trainer:
 
         avg_epoch_loss = np.array(epoch_losses).mean()
         losses.append(avg_epoch_loss)
-        print("[=>] Epoch average training loss: %.4f"%(avg_epoch_loss))
+        print("[->] Epoch average training loss: %.4f"%(avg_epoch_loss))
 
         if self.early_stop:
           epoch_vlosses = eval(epoch_vlosses, train=True)
@@ -163,10 +166,16 @@ if __name__ == "__main__":
   #renderer = Renderer3D(RW, RH)
   dataset = PathPlannerDataset("../data/sim/22/")
   print(len(dataset))
+  for samp in dataset:
+    path = samp["path"]
+    if torch.isnan(torch.tensor(path).float()).any():
+      print(path)
+      exit(0)
   samp = dataset[100]
   img, path = samp["image"], samp["path"]
   print(img.shape)
   print(path.shape)
+  print(path)
 
   # plot path
   fig = go.FigureWidget()
