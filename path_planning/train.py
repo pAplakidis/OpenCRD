@@ -4,7 +4,7 @@ from train_util import *
 from util import *
 
 model_path = "models/path_planner.pth"
-writer_path = "runs/test"
+writer_path = "runs/train_eval_0"
 
 if __name__ == "__main__":
   device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")

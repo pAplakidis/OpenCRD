@@ -94,7 +94,6 @@ class Trainer:
       with torch.no_grad():
         try:
           self.model.eval()
-          l_idx = 0
           for i_batch, sample_batched in enumerate((t := tqdm(self.val_loader))):
             X = torch.tensor(sample_batched['image']).float().to(self.device)
             Y = torch.tensor(sample_batched['path']).float().to(self.device)
@@ -103,10 +102,9 @@ class Trainer:
             loss = loss_func(out, Y)
 
             if not train:
-              self.writer.add_scalar('evaluation loss', loss.item(), l_idx)
+              self.writer.add_scalar('evaluation loss', loss.item(), i_batch)
             val_losses.append(loss.item())
             t.set_description("Batch Loss: %.2f"%(loss.item()))
-            l_idx += 1
 
         except KeyboardInterrupt:
           print("[~] Evaluation stopped by user")
@@ -115,10 +113,8 @@ class Trainer:
 
     losses = []
     vlosses = []
-
     try:
       print("[+] Training ...")
-      l_idx = 0
       for epoch in range(epochs):
         self.model.train()
         print("[=>] Epoch %d/%d"%(epoch+1, epochs))
@@ -135,14 +131,13 @@ class Trainer:
           #print("Ground Truth: ", Y.shape)
           loss = loss_func(out, Y)
 
-          self.writer.add_scalar("running loss", loss.item(), l_idx)
+          self.writer.add_scalar("running loss", loss.item(), i_batch)
           epoch_losses.append(loss.item())
 
           loss.backward()
           optim.step()
 
           t.set_description("Batch Training Loss: %.2f"%(loss.item()))
-          l_idx += 1
 
         avg_epoch_loss = np.array(epoch_losses).mean()
         losses.append(avg_epoch_loss)
@@ -160,6 +155,14 @@ class Trainer:
 
     for idx, l in enumerate(losses):
       self.writer.add_scalar("final training loss", l, idx)
+
+    # TODO: evaluate model + stats
+    val_losses = []
+    val_losses = eval(val_losses)
+    print("Avg Eval Loss: %.4f"%(np.array(val_losses).mean()))
+  
+    self.writer.close()
+    return self.model
 
 
 if __name__ == "__main__":
