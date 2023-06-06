@@ -1,0 +1,3 @@
+- train on more data (need to combine videos into a single dataset)
+- make a video-deployment app
+

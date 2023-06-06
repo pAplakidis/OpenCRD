@@ -10,8 +10,6 @@ from train_util import *
 from util import *
 from model import *
 
-# TODO: test out the model's output compared to groundtruth (show all trajectories and highlight the most probable)
-
 def figshow(fig):
   buf = io.BytesIO()
   pio.write_image(fig, buf)
@@ -25,32 +23,52 @@ if __name__ == "__main__":
   print("[+] Using device:", device)
 
   dataset = PathPlannerDataset("../data/sim/22/")
-  loader = DataLoader(dataset, batch_size=2, shuffle=False, num_workers=0)
-  loss = MDNLoss()
-
+  print("Dataset frames: ", len(dataset))
+  model = PathPlanner().to(device)
+  model = load_model(model_path, model)
+  loss_func = MTPLoss(model.n_paths)
   fig = go.FigureWidget()
-  fig.add_scatter()
-  fig.update_layout(xaxis_range=[-50,50])
-  fig.update_layout(yaxis_range=[0,50])
 
+  idxs = []
+  imgs = []
+  paths = []
   for i in range(10):
     idx = random.randint(0, len(dataset))
     samp = dataset[idx]
     img, path = samp["image"], samp["path"]
+    idxs.append(idx)
+    imgs.append(img)
+    paths.append(path)
 
-    model = PathPlanner().to(device)
+  for i in range(len(idxs)):
+    idx = idxs[i]
+    img = imgs[i]
+    path = paths[i]
+    print("[+] Frame:", idx)
+
+    disp_img = np.moveaxis(img, 0, -1)
+    disp_img = cv2.resize(disp_img, (d_W,d_H))
+
     with torch.no_grad():
       model.eval()
       X = torch.tensor([img,img]).float().to(device)
       out = model(X)
-      print(out.shape)
-      trajectories, modes = loss._get_trajectory_and_modes(out)
+      trajectories, modes = loss_func._get_trajectory_and_modes(out)
 
-      # TODO: display all paths together + groundtruth (highlight highest probability path)
-      for path in trajectories:
-        fig.data[0].x = path[:, 0]
-        fig.data[0].y = path[:, 1]
-        figshow(fig)
+      for idx, pred_path in enumerate(trajectories[0]):
+        path_x = pred_path.to("cpu").numpy()[:, 0]
+        path_y = pred_path.to("cpu").numpy()[:, 1]
+        if modes[0][idx] == torch.max(modes[0]):
+          marker = {"color": "red"}
+        else:
+          marker = {"color": "blue"}
+        fig.add_scatter(x=path_x, y=path_y, marker=marker)
+
+      fig.add_scatter(x=path[:, 0], y=path[:, 1], marker={"color": "green"})
+      fig.update_layout(xaxis_range=[-50,50])
+      fig.update_layout(yaxis_range=[0,50])
+      figshow(fig)
+      fig.data = []
 
       cv2.imshow("DISPLAY", disp_img)
       cv2.waitKey(0)
