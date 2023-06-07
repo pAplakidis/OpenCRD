@@ -60,11 +60,13 @@ if __name__ == "__main__":
         path_y = pred_path.to("cpu").numpy()[:, 1]
         if modes[0][idx] == torch.max(modes[0]):
           marker = {"color": "red"}
+          name = "best_path"
         else:
           marker = {"color": "blue"}
-        fig.add_scatter(x=path_x, y=path_y, marker=marker)
+          name = "path"+str(idx)
+        fig.add_scatter(x=path_x, y=path_y, name=name, marker=marker)
 
-      fig.add_scatter(x=path[:, 0], y=path[:, 1], marker={"color": "green"})
+      fig.add_scatter(x=path[:, 0], y=path[:, 1], name="ground_truth", marker={"color": "green"})
       fig.update_layout(xaxis_range=[-50,50])
       fig.update_layout(yaxis_range=[0,50])
       figshow(fig)

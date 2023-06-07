@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import os, sys
 import cv2
+import random
 import numpy as np
 from tqdm import tqdm
 from datetime import date
@@ -33,7 +34,7 @@ d_H = 1080 // 2
 class PathPlannerDataset(Dataset):
     def __init__(self, base_dir):
       super(Dataset, self).__init__()
-      self.base_dir = base_dir  # TODO: for now just use one clip
+      self.base_dir = base_dir
       self.video_path = base_dir + "video.mp4"
       self.poses_path = base_dir + "poses.npy"
       self.framepath_path = base_dir + "frame_paths.npy"
@@ -62,6 +63,44 @@ class PathPlannerDataset(Dataset):
       if np.isnan(self.frame_paths[idx]).any():
         self.frame_paths[idx] = np.zeros_like(self.frame_paths[idx])
       return {"image": frame, "path": self.frame_paths[idx]}
+
+
+class MultiVideoDataset(Dataset):
+  def __init__(self, base_dir):
+    super(Dataset, self).__init__()
+    self.base_dir = base_dir
+    self.video_paths = []
+    self.framepath_paths = []
+    for dir in sorted(os.listdir(base_dir)):
+      prefix = self.base_dir+"/"+dir+"/"
+      self.video_paths.append(prefix+"video.mp4")
+      self.framepath_paths.append(prefix+"frame_paths.npy")
+
+    self.caps = [cv2.VideoCapture(str(video_path)) for video_path in self.video_paths]
+    self.images = [[capid, framenum] for capid, cap in enumerate(self.caps) for framenum in range(int(cap.get(cv2.CAP_PROP_FRAME_COUNT)))]
+    self.frame_paths = [np.load(fp) for fp in self.framepath_paths]
+
+  def __len__(self):
+    return len(self.images)
+
+  def __getitem__(self, idx):
+    capid, framenum = self.images[idx]
+    cap = self.caps[capid]
+    cap.set(cv2.CAP_PROP_POS_FRAMES, framenum)
+    ret, frame = cap.read()
+
+    frame = cv2.resize(frame, (W,H))
+    frame = np.moveaxis(frame, -1, 0)
+    print(self.images[idx])
+    print(self.frame_paths[capid].shape)
+    path = self.frame_paths[capid][framenum]
+    if np.isnan(path).any():
+      path = np.zeros_like(path)
+
+    #img_tensor = torch.from_numpy(frame).float()
+    #path_tensor = torch.from_numpy(path).float()
+    #return {"image": img_tensor, "path": path_tensor}
+    return {"image": frame, "path": path}
 
 
 class Trainer:
@@ -167,13 +206,9 @@ class Trainer:
 
 if __name__ == "__main__":
   #renderer = Renderer3D(RW, RH)
+  """
   dataset = PathPlannerDataset("../data/sim/22/")
   print(len(dataset))
-  for samp in dataset:
-    path = samp["path"]
-    if torch.isnan(torch.tensor(path).float()).any():
-      print(path)
-      exit(0)
   samp = dataset[100]
   img, path = samp["image"], samp["path"]
   print(img.shape)
@@ -200,4 +235,39 @@ if __name__ == "__main__":
   cv2.waitKey(0)
 
   dataset.cap.release()
+  cv2.destroyAllWindows()
+  """
+
+  dataset = MultiVideoDataset("../data/sim")
+  print("Frames in dataset:", len(dataset))
+  idxs = []
+  for _ in range(10):
+    idxs.append(random.randint(0, len(dataset)))
+
+  for idx in idxs:
+    print("[+] Frame:", idx)
+    samp = dataset[idx]
+    # TODO: we get index out of range for path
+    img, path = samp["image"], samp["path"]
+    print(img.shape)
+    print(path.shape)
+
+    # plot path
+    fig = go.FigureWidget()
+    fig = go.FigureWidget()
+    fig.add_scatter()
+    fig.update_layout(xaxis_range=[-50,50])
+    fig.update_layout(yaxis_range=[0,50])
+    fig.data[0].x = path[:, 0]
+    fig.data[0].y = path[:, 1]
+    figshow(fig)
+
+    disp_img = np.moveaxis(img, 0, -1)
+    disp_img = cv2.resize(disp_img, (d_W, d_H))
+
+    cv2.imshow("DISPLAY", disp_img)
+    cv2.waitKey(0)
+
+  for cap in dataset.caps:
+    cap.release()
   cv2.destroyAllWindows()
