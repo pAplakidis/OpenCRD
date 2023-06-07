@@ -72,13 +72,28 @@ class MultiVideoDataset(Dataset):
     self.video_paths = []
     self.framepath_paths = []
     for dir in sorted(os.listdir(base_dir)):
-      prefix = self.base_dir+"/"+dir+"/"
+      prefix = self.base_dir+dir+"/"
       self.video_paths.append(prefix+"video.mp4")
       self.framepath_paths.append(prefix+"frame_paths.npy")
 
     self.caps = [cv2.VideoCapture(str(video_path)) for video_path in self.video_paths]
-    self.images = [[capid, framenum] for capid, cap in enumerate(self.caps) for framenum in range(int(cap.get(cv2.CAP_PROP_FRAME_COUNT)))]
+    self.images = [[capid, framenum] for capid, cap in enumerate(self.caps) for framenum in range(int(cap.get(cv2.CAP_PROP_FRAME_COUNT))-LOOKAHEAD+2)]
     self.frame_paths = [np.load(fp) for fp in self.framepath_paths]
+    """
+    # check length of images and paths
+    print("images:")
+    cap = 0
+    frame_cnt = []
+    for i in range(len(self.images)):
+      if self.images[i][0] != cap:
+        cap += 1
+        frame_cnt.append(self.images[i-1][1])
+    frame_cnt.append(self.images[-1][1])
+    print(frame_cnt)
+    print("frame paths:")
+    for fp in self.frame_paths:
+      print(fp.shape)
+    """
 
   def __len__(self):
     return len(self.images)
@@ -91,8 +106,6 @@ class MultiVideoDataset(Dataset):
 
     frame = cv2.resize(frame, (W,H))
     frame = np.moveaxis(frame, -1, 0)
-    print(self.images[idx])
-    print(self.frame_paths[capid].shape)
     path = self.frame_paths[capid][framenum]
     if np.isnan(path).any():
       path = np.zeros_like(path)
@@ -238,7 +251,7 @@ if __name__ == "__main__":
   cv2.destroyAllWindows()
   """
 
-  dataset = MultiVideoDataset("../data/sim")
+  dataset = MultiVideoDataset("../data/sim/")
   print("Frames in dataset:", len(dataset))
   idxs = []
   for _ in range(10):
@@ -247,7 +260,6 @@ if __name__ == "__main__":
   for idx in idxs:
     print("[+] Frame:", idx)
     samp = dataset[idx]
-    # TODO: we get index out of range for path
     img, path = samp["image"], samp["path"]
     print(img.shape)
     print(path.shape)
