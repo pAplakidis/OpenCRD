@@ -65,6 +65,7 @@ class PathPlannerDataset(Dataset):
       return {"image": frame, "path": self.frame_paths[idx]}
 
 
+# BUG: when paired with a loader, it tries to get max idx from each cap
 class MultiVideoDataset(Dataset):
   def __init__(self, base_dir):
     super(Dataset, self).__init__()
@@ -77,7 +78,7 @@ class MultiVideoDataset(Dataset):
       self.framepath_paths.append(prefix+"frame_paths.npy")
 
     self.caps = [cv2.VideoCapture(str(video_path)) for video_path in self.video_paths]
-    self.images = [[capid, framenum] for capid, cap in enumerate(self.caps) for framenum in range(int(cap.get(cv2.CAP_PROP_FRAME_COUNT))-LOOKAHEAD+2)]
+    self.images = [[capid, framenum] for capid, cap in enumerate(self.caps) for framenum in range(int(cap.get(cv2.CAP_PROP_FRAME_COUNT))-LOOKAHEAD+1)]
     self.frame_paths = [np.load(fp) for fp in self.framepath_paths]
     """
     # check length of images and paths
@@ -220,6 +221,7 @@ class Trainer:
 if __name__ == "__main__":
   #renderer = Renderer3D(RW, RH)
   """
+  # Test single video dataset
   dataset = PathPlannerDataset("../data/sim/22/")
   print(len(dataset))
   samp = dataset[100]
@@ -251,6 +253,7 @@ if __name__ == "__main__":
   cv2.destroyAllWindows()
   """
 
+  # Test multi-video dataset
   dataset = MultiVideoDataset("../data/sim/")
   print("Frames in dataset:", len(dataset))
   idxs = []
@@ -279,6 +282,15 @@ if __name__ == "__main__":
 
     cv2.imshow("DISPLAY", disp_img)
     cv2.waitKey(0)
+
+  # Test batch loader
+  """
+  loader = DataLoader(dataset, batch_size=12, shuffle=True, num_workers=0)
+  for i_batch, sample_batched in enumerate(loader):
+    X = torch.tensor(sample_batched['image']).float()
+    Y = torch.tensor(sample_batched['path']).float()
+    print(i_batch, X.shape, Y.shape)
+  """
 
   for cap in dataset.caps:
     cap.release()

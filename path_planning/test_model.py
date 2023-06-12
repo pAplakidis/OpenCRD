@@ -22,7 +22,8 @@ if __name__ == "__main__":
   device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
   print("[+] Using device:", device)
 
-  dataset = PathPlannerDataset("../data/sim/22/")
+  #dataset = PathPlannerDataset("../data/sim/22/")
+  dataset = MultiVideoDataset("../data/sim/")
   print("Dataset frames: ", len(dataset))
   model = PathPlanner().to(device)
   model = load_model(model_path, model)
@@ -75,5 +76,7 @@ if __name__ == "__main__":
       cv2.imshow("DISPLAY", disp_img)
       cv2.waitKey(0)
 
-      dataset.cap.release()
+      #dataset.cap.release()
+      for cap in dataset.caps:
+        cap.release()
       cv2.destroyAllWindows()

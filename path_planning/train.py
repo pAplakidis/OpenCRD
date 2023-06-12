@@ -3,9 +3,12 @@ from model import *
 from train_util import *
 from util import *
 
+# TODO: more enviroment variables for multiple experiments
 model_path = "models/path_planner.pth"
 writer_path = "runs/train_eval_0"
 
+# TODO: the whole training stack is bottlenecked by the fact that we are loading from the hard-drive instead of RAM
+# so the GPU is not utilized completely
 if __name__ == "__main__":
   device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
   print("[+] Using device:", device)
@@ -25,5 +28,7 @@ if __name__ == "__main__":
   trainer = Trainer(device, model, train_loader, val_loader, model_path, writer_path)
   trainer.train()
 
-  dataset.cap.release()
+  #dataset.cap.release()
+  for cap in dataset.caps:
+    cap.release()
   cv2.destroyAllWindows()
