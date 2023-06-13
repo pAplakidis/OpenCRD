@@ -27,6 +27,7 @@ if __name__ == "__main__":
   print("Dataset frames: ", len(dataset))
   model = PathPlanner().to(device)
   model = load_model(model_path, model)
+  model.eval()
   loss_func = MTPLoss(model.n_paths)
   fig = go.FigureWidget()
 
@@ -51,7 +52,6 @@ if __name__ == "__main__":
     disp_img = cv2.resize(disp_img, (d_W,d_H))
 
     with torch.no_grad():
-      model.eval()
       X = torch.tensor([img,img]).float().to(device)
       out = model(X)
       trajectories, modes = loss_func._get_trajectory_and_modes(out)
