@@ -72,14 +72,17 @@ class MultiVideoDataset(Dataset):
     self.base_dir = base_dir
     self.video_paths = []
     self.framepath_paths = []
+    self.desires_paths = []
     for dir in sorted(os.listdir(base_dir)):
       prefix = self.base_dir+dir+"/"
       self.video_paths.append(prefix+"video.mp4")
       self.framepath_paths.append(prefix+"frame_paths.npy")
+      self.desires_paths.append(prefix+"desires.npy")
 
     self.caps = [cv2.VideoCapture(str(video_path)) for video_path in self.video_paths]
     self.images = [[capid, framenum] for capid, cap in enumerate(self.caps) for framenum in range(int(cap.get(cv2.CAP_PROP_FRAME_COUNT))-LOOKAHEAD+1)]
     self.frame_paths = [np.load(fp) for fp in self.framepath_paths]
+    self.desires = [np.load(desires) for desires in self.desires_paths]
     """
     # check length of images and paths
     print("images:")
@@ -110,11 +113,12 @@ class MultiVideoDataset(Dataset):
     path = self.frame_paths[capid][framenum]
     if np.isnan(path).any():
       path = np.zeros_like(path)
+    desire = self.desires[capid][framenum]
 
     #img_tensor = torch.from_numpy(frame).float()
     #path_tensor = torch.from_numpy(path).float()
     #return {"image": img_tensor, "path": path_tensor}
-    return {"image": frame, "path": path}
+    return {"image": frame, "path": path, "desire": desire}
 
 
 class Trainer:
@@ -263,9 +267,10 @@ if __name__ == "__main__":
   for idx in idxs:
     print("[+] Frame:", idx)
     samp = dataset[idx]
-    img, path = samp["image"], samp["path"]
+    img, path, desire = samp["image"], samp["path"], samp["desire"]
     print(img.shape)
     print(path.shape)
+    print("Desire:", desire, "=>", DESIRE[desire])
 
     # plot path
     fig = go.FigureWidget()

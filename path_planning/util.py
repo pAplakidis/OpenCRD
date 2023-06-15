@@ -19,6 +19,11 @@ FRAME_TIME = 50
 
 FOCAL = 910.0
 
+LABEL_DICT = {0: "no crossroad", 1: "crossroad"}  # NOTE: no need to change this for 2 classes (argmax still gets us the same results)
+DESIRE = {0: "forward",
+          1: "right",
+          2: "left"}
+
 # device/mesh : x->forward, y-> right, z->down
 # view : x->right, y->down, z->forward
 device_frame_from_view_frame = np.array([

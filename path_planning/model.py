@@ -73,10 +73,11 @@ class PathPlanner(nn.Module):
     #self.policy = MDN(1408, 1, 1) # TODO: tamper with this
     self.policy = MTP(1408, n_modes=self.n_paths)
 
-  def forward(self, x):
+  def forward(self, x, desire):
     x = self.vision(x)
     x = x.view(-1, self.num_flat_features(x))
     #print(x.shape)
+    torch.cat((x, desire), 1)
     x = self.policy(x)
     return x
   
@@ -86,7 +87,6 @@ class PathPlanner(nn.Module):
     for s in size:
       num_features *= s
     return num_features
-
 
 
 def gaussian_probability(sigma, mu, target):

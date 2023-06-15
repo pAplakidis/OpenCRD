@@ -3,19 +3,21 @@ import sys
 import cv2
 import numpy as np
 
-from helpers import *
-
 # (3, 960, 1280) inputs images
 W = 1280
 H = 960
 
 # TODO: implement timestamps (so we can go back and forth wherever we want in the video, this might need extra work with the line indices so they can match the frames)
+DESIRE = {0: "forward",
+          1: "right",
+          2: "left"}
 
 # for every frame/line output the label in a txt file
 if __name__ == '__main__':
   # NOTE: only .mp4 videos
-  video_path = sys.argv[1]
-  label_path = video_path[:-4]
+  base_path = sys.argv[1]
+  video_path = base_path + "video.mp4"
+  label_path = base_path + "desires.npy"
 
   cap = cv2.VideoCapture(video_path)
   labels = []
@@ -51,14 +53,13 @@ if __name__ == '__main__':
     else:
       break
 
+  labels = np.array(labels)
   print(labels)
   cap.release()
   cv2.destroyAllWindows()
 
   # save to file
-  label_file = open(label_path + "_desire.txt", "w")
-  for label in labels:
-    label_file.write(str(label) + "\n")
-  print("Labels written to", label_path+"_desire.txt")
-  label_file.close()
+  out_path = label_path
+  np.save(out_path, labels)
+  print("Labels written to", out_path)
 
