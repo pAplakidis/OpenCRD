@@ -30,12 +30,15 @@ if __name__ == "__main__":
 
   # get data
   cap = cv2.VideoCapture(base_dir+"video.mp4")
-  path_dir = base_dir+"frame_paths.npy"
+  path_dir = base_dir + "frame_paths.npy"
+  desire_dir = base_dir + "desires.npy"
   ground_truth = False
 
   if os.path.isfile(path_dir):
     ground_truth = True
     frame_paths = np.load(base_dir+"frame_paths.npy")
+
+  desires = one_hot_encode(np.load(desire_dir))
 
   # setup model and other
   model = PathPlanner().to(device)
@@ -61,13 +64,17 @@ if __name__ == "__main__":
       print("GroundTruth Path shape:", path.shape)
       if np.isnan(path).any():
         path = np.zeros_like(path)
+    desire = desires[fid]
+    desire_idx = np.argmax(desire)
+    print("Desire:", desire_idx, "=>", DESIRE[desire_idx])
 
     disp_img = cv2.resize(frame, (d_W,d_H))
 
     with torch.no_grad():
       X = torch.tensor([img_in,img_in]).float().to(device)
+      DES = torch.tensor([desire, desire]).float().to(device)
       print("Model input shape:", X.shape)
-      out = model(X)
+      out = model(X, DES)
       print("Model output shape:", out.shape)
       trajectories, modes = loss_func._get_trajectory_and_modes(out)
       print("Path probabilities:")
@@ -92,9 +99,19 @@ if __name__ == "__main__":
     figshow(fig)
     fig.data = []
 
-    # display FPS
+    # Image Display
     font = cv2.FONT_HERSHEY_SIMPLEX 
     fontScale = 1
+
+    # display desire
+    org = (25, 55)
+    color = (255, 0, 0)
+    thickness = 2
+    text = "DESIRE: %s, %d" % (DESIRE[desire_idx], desire_idx)
+    disp_img = cv2.putText(disp_img, text, org, font,
+                            fontScale, color, thickness, cv2.LINE_AA)
+
+    # display FPS
     thickness = 2
     new_frame_time = time.time()
     fps = 1 / (new_frame_time - prev_frame_time)

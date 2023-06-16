@@ -34,26 +34,29 @@ if __name__ == "__main__":
   idxs = []
   imgs = []
   paths = []
+  desires = []
   for i in range(10):
     idx = random.randint(0, len(dataset))
     samp = dataset[idx]
-    img, path = samp["image"], samp["path"]
+    img, path, desire = samp["image"], samp["path"], samp["desire"]
     idxs.append(idx)
     imgs.append(img)
     paths.append(path)
+    desires.append(desire)
 
   for i in range(len(idxs)):
-    idx = idxs[i]
     img = imgs[i]
     path = paths[i]
-    print("[+] Frame:", idx)
+    desire = desires[i]
+    print("[+] Frame:", idxs[i])
 
     disp_img = np.moveaxis(img, 0, -1)
     disp_img = cv2.resize(disp_img, (d_W,d_H))
 
     with torch.no_grad():
       X = torch.tensor([img,img]).float().to(device)
-      out = model(X)
+      DES = torch.tensor([desire, desire]).float().to(device)
+      out = model(X, DES)
       trajectories, modes = loss_func._get_trajectory_and_modes(out)
 
       for idx, pred_path in enumerate(trajectories[0]):
@@ -73,10 +76,13 @@ if __name__ == "__main__":
       figshow(fig)
       fig.data = []
 
+      desire_idx = np.argmax(desire)
+      print("Desire:", desire_idx, "=>", DESIRE[desire_idx])
+
       cv2.imshow("DISPLAY", disp_img)
       cv2.waitKey(0)
 
-      #dataset.cap.release()
-      for cap in dataset.caps:
-        cap.release()
-      cv2.destroyAllWindows()
+  #dataset.cap.release()
+  for cap in dataset.caps:
+    cap.release()
+  cv2.destroyAllWindows()

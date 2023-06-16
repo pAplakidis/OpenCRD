@@ -19,11 +19,6 @@ FRAME_TIME = 50
 
 FOCAL = 910.0
 
-LABEL_DICT = {0: "no crossroad", 1: "crossroad"}  # NOTE: no need to change this for 2 classes (argmax still gets us the same results)
-DESIRE = {0: "forward",
-          1: "right",
-          2: "left"}
-
 # device/mesh : x->forward, y-> right, z->down
 # view : x->right, y->down, z->forward
 device_frame_from_view_frame = np.array([
@@ -219,6 +214,9 @@ def draw_path(path, img, width=1, height=1.2, fill_color=(128,0,255), line_color
     #print(img_pts[i])
     cv2.circle(img, img_pts[i], 1, line_color, -1)
 
+# ------------------------------------------------------------
+
+# plotly cv2 show instead of browser
 def figshow(fig):
   buf = io.BytesIO()
   pio.write_image(fig, buf)
@@ -226,3 +224,24 @@ def figshow(fig):
   file_bytes = np.asarray(bytearray(buf.read()), dtype=np.uint8)
   img = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
   cv2.imshow("Path Plot", img)
+
+# ------------------------------------------------------------
+
+DESIRE = {0: "forward",
+          1: "right",
+          2: "left"}
+
+# specifically for desire (0, 1, 2)
+def one_hot_encode(arr):
+  new_arr = []
+  for i in range(len(arr)):
+    idx = arr[i]
+    tmp = [0, 0, 0]
+    tmp[idx] = 1
+    new_arr.append(tmp)
+  return np.array(new_arr)
+
+# ------------------------------------------------------------
+
+LABEL_DICT = {0: "no crossroad", 1: "crossroad"}  # NOTE: no need to change this for 2 classes (argmax still gets us the same results)
+

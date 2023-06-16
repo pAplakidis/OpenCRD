@@ -69,6 +69,7 @@ class PathPlannerDataset(Dataset):
 class MultiVideoDataset(Dataset):
   def __init__(self, base_dir):
     super(Dataset, self).__init__()
+    # directories
     self.base_dir = base_dir
     self.video_paths = []
     self.framepath_paths = []
@@ -79,10 +80,13 @@ class MultiVideoDataset(Dataset):
       self.framepath_paths.append(prefix+"frame_paths.npy")
       self.desires_paths.append(prefix+"desires.npy")
 
+    # load and index actual data
     self.caps = [cv2.VideoCapture(str(video_path)) for video_path in self.video_paths]
     self.images = [[capid, framenum] for capid, cap in enumerate(self.caps) for framenum in range(int(cap.get(cv2.CAP_PROP_FRAME_COUNT))-LOOKAHEAD+1)]
     self.frame_paths = [np.load(fp) for fp in self.framepath_paths]
     self.desires = [np.load(desires) for desires in self.desires_paths]
+    for i in range(len(self.desires)):
+      self.desires[i] = one_hot_encode(self.desires[i])
     """
     # check length of images and paths
     print("images:")
@@ -153,9 +157,10 @@ class Trainer:
           self.model.eval()
           for i_batch, sample_batched in enumerate((t := tqdm(self.val_loader))):
             X = torch.tensor(sample_batched['image']).float().to(self.device)
+            desire = torch.tensor(sample_batched["desire"]).float().to(self.device)
             Y = torch.tensor(sample_batched['path']).float().to(self.device)
 
-            out = self.model(X)
+            out = self.model(X, desire)
             loss = loss_func(out, Y)
 
             if not train:
@@ -180,10 +185,11 @@ class Trainer:
 
         for i_batch, sample_batched in enumerate((t := tqdm(self.train_loader))):
           X = torch.tensor(sample_batched['image']).float().to(self.device)
+          desire = torch.tensor(sample_batched["desire"]).float().to(self.device)
           Y = torch.tensor(sample_batched['path']).float().to(self.device)
 
           optim.zero_grad()
-          out = self.model(X)
+          out = self.model(X, desire)
           #print("Model output: ", out.shape)
           #print("Ground Truth: ", Y.shape)
           loss = loss_func(out, Y)
@@ -270,7 +276,8 @@ if __name__ == "__main__":
     img, path, desire = samp["image"], samp["path"], samp["desire"]
     print(img.shape)
     print(path.shape)
-    print("Desire:", desire, "=>", DESIRE[desire])
+    desire_idx = np.argmax(desire)
+    print("Desire:", desire_idx, "=>", DESIRE[desire_idx])
 
     # plot path
     fig = go.FigureWidget()
