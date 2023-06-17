@@ -3,9 +3,21 @@ from model import *
 from train_util import *
 from util import *
 
-# TODO: more enviroment variables for multiple experiments
-model_path = "models/path_planner.pth"
-writer_path = "runs/train_eval_0"
+# EXAMPLE USAGE: MODEL_PATH="models/path_planner.pth" WRITER_PATH="runs/test_1" ./train.py
+
+model_path = os.getenv("MODEL_PATH")
+if model_path == None:
+  model_path = "models/path_planner.pth"
+print("[+] Model save path:", model_path)
+
+writer_path = os.getenv("WRITER_PATH")
+if writer_path == None:
+  writer_path = "runs/train_eval_0"
+print("[+] Tensorboard Writer path:", writer_path)
+
+BS = 12
+EPOCHS = 100
+LR = 1e-3
 
 # TODO: the whole training stack is bottlenecked by the fact that we are loading from the hard-drive instead of RAM
 # so the GPU is not utilized completely
@@ -19,14 +31,14 @@ if __name__ == "__main__":
   train_split = int(len(dataset)*0.7) # 70% training data
   val_split = int(len(dataset)*0.3)   # 30% validation data
   train_set, val_set = random_split(dataset, [train_split+1, val_split])
-  train_loader = DataLoader(train_set, batch_size=12, shuffle=True, num_workers=0)
-  val_loader = DataLoader(val_set, batch_size=12, shuffle=True, num_workers=0)
+  train_loader = DataLoader(train_set, batch_size=BS, shuffle=True, num_workers=0)
+  val_loader = DataLoader(val_set, batch_size=BS, shuffle=True, num_workers=0)
 
   # train model
   model = PathPlanner()
   print(model)
   trainer = Trainer(device, model, train_loader, val_loader, model_path, writer_path)
-  trainer.train()
+  trainer.train(epochs=EPOCHS, lr=LR)
 
   #dataset.cap.release()
   for cap in dataset.caps:

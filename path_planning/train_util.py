@@ -74,8 +74,10 @@ class MultiVideoDataset(Dataset):
     self.video_paths = []
     self.framepath_paths = []
     self.desires_paths = []
+    print("Data from:")
     for dir in sorted(os.listdir(base_dir)):
       prefix = self.base_dir+dir+"/"
+      print(prefix)
       self.video_paths.append(prefix+"video.mp4")
       self.framepath_paths.append(prefix+"frame_paths.npy")
       self.desires_paths.append(prefix+"desires.npy")
@@ -145,7 +147,7 @@ class Trainer:
     torch.save(state, path)
     print("Checkpoint saved at", path)
 
-  def train(self, epochs=100, lr=1e-3, path=None):
+  def train(self, epochs=100, lr=1e-3):
     #loss_func = nn.MSELoss()
     loss_func = MTPLoss(self.model.n_paths)
     optim = torch.optim.Adam(self.model.parameters(), lr=lr)
