@@ -12,7 +12,7 @@ from model import *
 
 base_dir = os.getenv("DATADIR")
 if base_dir is None:
-  base_dir = "../data/sim/22/"
+  base_dir = "../data/sim/train/22/"
   print("[~] No DATA directory specified, using default:", base_dir)
 
 def figshow(fig):

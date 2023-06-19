@@ -1,4 +1,7 @@
-- train on more data (need to combine videos into a single dataset) (DONE)
+# Scripts for path planning
+
+## TODO
+- combine videos into a single dataset    (DONE)
 - make a video-deployment app             (DONE)
 - add/label DESIRE                        (DONE)
 - extract DESIRE from blinkers in CARLA   (DONE)

@@ -27,7 +27,7 @@ if __name__ == "__main__":
 
   # get data
   #dataset = PathPlannerDataset("../data/sim/22/")
-  dataset = MultiVideoDataset("../data/sim/")
+  dataset = MultiVideoDataset("../data/sim/train/")
   train_split = int(len(dataset)*0.7) # 70% training data
   val_split = int(len(dataset)*0.3)   # 30% validation data
   train_set, val_set = random_split(dataset, [train_split+1, val_split])
