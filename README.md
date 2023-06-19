@@ -1,8 +1,8 @@
 # Subject: Monocular Crossroad Detection and Path Prediction using Multi-Task Learning
-## My Thesis on End-to-End autonomous driving.
+My Thesis on End-to-End autonomous driving.
 
 ## GOAL -> Use single camera and solve the following tasks:
-* that detects corssroads
+* detect corssroads
 * find multiple paths on crossroads
 * desire data
 * add GPS navigation support
