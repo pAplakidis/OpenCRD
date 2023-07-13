@@ -7,7 +7,7 @@ from util import *
 
 model_path = os.getenv("MODEL_PATH")
 if model_path == None:
-  model_path = "models/path_planner.pth"
+  model_path = "models/path_planner_desire.pth"
 print("[+] Model save path:", model_path)
 
 writer_path = os.getenv("WRITER_PATH")

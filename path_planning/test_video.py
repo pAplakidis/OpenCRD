@@ -5,15 +5,21 @@ import plotly.io as pio
 import plotly.express as px
 import plotly.graph_objects as go
 
-from train import *
 from train_util import *
 from util import *
 from model import *
+
+FRAME_SKIP = 6  # 10fps => 60fps?
 
 base_dir = os.getenv("DATADIR")
 if base_dir is None:
   base_dir = "../data/sim/train/22/"
   print("[~] No DATA directory specified, using default:", base_dir)
+
+model_path = os.getenv("MODEL_PATH")
+if model_path == None:
+  model_path = "models/path_planner_desire.pth"
+print("[+] Model save path:", model_path)
 
 def figshow(fig):
   buf = io.BytesIO()
@@ -70,6 +76,8 @@ if __name__ == "__main__":
 
     disp_img = cv2.resize(frame, (d_W,d_H))
 
+    # TODO: improve frame skipping to improve performance ()
+    #if (fid+1) % FRAME_SKIP == 0:
     with torch.no_grad():
       X = torch.tensor([img_in,img_in]).float().to(device)
       DES = torch.tensor([desire, desire]).float().to(device)

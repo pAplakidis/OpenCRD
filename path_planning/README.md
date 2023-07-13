@@ -7,4 +7,5 @@
 - extract DESIRE from blinkers in CARLA   (DONE)
 - add videos with traffic and pedestrians + more in-town driving
 - label CROSSROADS
+- frame skipping for deployment
 

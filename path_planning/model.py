@@ -58,26 +58,26 @@ class PathPlanner(nn.Module):
     super(PathPlanner, self).__init__()
     self.n_paths = n_paths
     effnet = efficientnet_b2(pretrained=True)
-    self.vision = torch.nn.Sequential(*(list(effnet.children())[:-1]))
+    self.vision = nn.Sequential(*(list(effnet.children())[:-1]))
     #del self.vision.classifier
     """
      (classifier): Sequential(                                                                            
       (0): Dropout(p=0.3, inplace=True)                                                                  
       (1): Linear(in_features=1408, out_features=1000, bias=True)
     """
-    # TODO: start with simple ConvNet, RNN later on (maybe GRU or LSTM)
-    # TODO: more than image for input (desire, state, etc)
-    # TODO: multimodal (multiple paths with probabilities) output (check out mixture density networks)
+    # TODO: GRU instead of linear layers
+    # TODO: more than image for input (+ desire, recurrent state, etc)
+
+    # multimodal (multiple paths with probabilities) output (check out mixture density networks)
     # meaning output is M future paths (for now) <xi,yi> for i in range(2*H)
     # along with each path's probabilities, these probabilities are passed through a softmax layer
-    #self.policy = MDN(1408, 1, 1) # TODO: tamper with this
     self.policy = MTP(1408, n_modes=self.n_paths)
 
   def forward(self, x, desire):
     x = self.vision(x)
     x = x.view(-1, self.num_flat_features(x))
+    x = torch.cat((x, desire), 1)
     #print(x.shape)
-    torch.cat((x, desire), 1)
     x = self.policy(x)
     return x
   
@@ -88,6 +88,48 @@ class PathPlanner(nn.Module):
       num_features *= s
     return num_features
 
+class ComboModel(nn.Module):
+  def __init__(self, n_paths=3):
+    super(ComboModel, self).__init__()
+    self.n_paths = n_paths
+    effnet = efficientnet_b2(pretrained=True)
+
+    self.vision = nn.Sequential(*(list(effnet.children())[:-1]))
+    self.policy = MTP(1408, n_modes=self.n_paths)
+    self.cr_detector = nn.Sequential(
+      nn.Linear(1408, 1024),
+      nn.BatchNorm1d(1024),
+      nn.ReLU(),
+      nn.Linear(1024, 128),
+      nn.BatchNorm1d(128),
+      nn.ReLU(),
+      nn.Linear(128, 84),
+      nn.BatchNorm1d(84),
+      nn.ReLU(),
+      nn.Linear(84, 1)
+    )
+
+  def forward(self, x, desire):
+    x = self.vision(x)
+    x = x.view(-1, self.num_flat_features(x))
+    x = torch.cat((x, desire), 1)
+    #print(x.shape)
+    path = self.policy(x)
+    crossroad = self.cr_detector(x)
+    return path, crossroad
+
+  def num_flat_features(self, x):
+    size = x.size()[1:] # all dimensions except the batch dimension
+    num_features = 1
+    for s in size:
+      num_features *= s
+    return num_features
+
+#=============================================================================
+
+#--------------------------------
+# CUSTOM LOSS FUNCTIONS
+#--------------------------------
 
 def gaussian_probability(sigma, mu, target):
   target = target.unsqueeze(1).expand_as(sigma)

@@ -74,6 +74,7 @@ class MultiVideoDataset(Dataset):
     self.video_paths = []
     self.framepath_paths = []
     self.desires_paths = []
+    self.crossroads_paths = []
     print("Data from:")
     for dir in sorted(os.listdir(base_dir)):
       prefix = self.base_dir+dir+"/"
@@ -81,12 +82,14 @@ class MultiVideoDataset(Dataset):
       self.video_paths.append(prefix+"video.mp4")
       self.framepath_paths.append(prefix+"frame_paths.npy")
       self.desires_paths.append(prefix+"desires.npy")
+      self.crossroads_paths.append(prefix+"crossroads.npy")
 
     # load and index actual data
     self.caps = [cv2.VideoCapture(str(video_path)) for video_path in self.video_paths]
     self.images = [[capid, framenum] for capid, cap in enumerate(self.caps) for framenum in range(int(cap.get(cv2.CAP_PROP_FRAME_COUNT))-LOOKAHEAD+1)]
     self.frame_paths = [np.load(fp) for fp in self.framepath_paths]
     self.desires = [np.load(desires) for desires in self.desires_paths]
+    self.crossroads = [np.load(crds) for crds in self.crossroads_paths]
     for i in range(len(self.desires)):
       self.desires[i] = one_hot_encode(self.desires[i])
     """
@@ -120,13 +123,17 @@ class MultiVideoDataset(Dataset):
     if np.isnan(path).any():
       path = np.zeros_like(path)
     desire = self.desires[capid][framenum]
+    crossroad = self.crossroads[capid][framenum]
 
     #img_tensor = torch.from_numpy(frame).float()
     #path_tensor = torch.from_numpy(path).float()
     #return {"image": img_tensor, "path": path_tensor}
-    return {"image": frame, "path": path, "desire": desire}
+    return {"image": frame, "path": path, "desire": desire, "crossroad": crossroad}
 
 
+# TODO: add crossroads here
+# TODO: modify crossroad labeler to output to .npy
+# TODO: label videos with crossroads
 class Trainer:
   def __init__(self, device, model, train_loader, val_loader, model_path, writer_path=None, early_stop=False):
     self.early_stop = early_stop
