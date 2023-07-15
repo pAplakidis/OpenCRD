@@ -1,5 +1,6 @@
 import math
 import random
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -95,9 +96,9 @@ class ComboModel(nn.Module):
     effnet = efficientnet_b2(pretrained=True)
 
     self.vision = nn.Sequential(*(list(effnet.children())[:-1]))
-    self.policy = MTP(1408, n_modes=self.n_paths)
+    self.policy = MTP(1411, n_modes=self.n_paths)
     self.cr_detector = nn.Sequential(
-      nn.Linear(1408, 1024),
+      nn.Linear(1411, 1024),
       nn.BatchNorm1d(1024),
       nn.ReLU(),
       nn.Linear(1024, 128),
@@ -259,6 +260,34 @@ class MTPLoss:
     
     avg_loss = torch.mean(batch_losses)
     return avg_loss
+
+class ComboLoss(nn.Module):
+  def __init__(self, task_num, model, device):
+    super(ComboLoss, self).__init__()
+    self.task_num = task_num  # TODO: maybe make this constant
+    self.model = model
+    self.device = device
+    self.log_vars = nn.Parameter(torch.zeros((task_num)))
+
+  # TODO: CUDA ERROR HERE (with loss)
+  def forward(self, preds, path, cr):
+    cr_loss = nn.BCELoss()
+    path_loss = MTPLoss(self.model.n_paths)
+
+    loss0 = path_loss(preds[0], path)
+    loss1 = cr_loss(preds[1], cr)
+
+    # TODO: need better multitask loss (weighted sum maybe)
+    precision0 = torch.exp(-self.log_vars[0])
+    #loss0 = precision0*loss0 + self.log_vars[0]
+
+    precision1 = torch.exp(-self.log_vars[1])
+    #loss1 = precision1*loss1 + self.log_vars[1]
+
+    loss = loss0 + loss1
+    #loss = loss.mean()
+
+    return loss.to(self.device)
 
 
 def save_model(path, model):

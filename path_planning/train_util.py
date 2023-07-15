@@ -65,7 +65,6 @@ class PathPlannerDataset(Dataset):
       return {"image": frame, "path": self.frame_paths[idx]}
 
 
-# BUG: when paired with a loader, it tries to get max idx from each cap
 class MultiVideoDataset(Dataset):
   def __init__(self, base_dir):
     super(Dataset, self).__init__()
@@ -89,9 +88,10 @@ class MultiVideoDataset(Dataset):
     self.images = [[capid, framenum] for capid, cap in enumerate(self.caps) for framenum in range(int(cap.get(cv2.CAP_PROP_FRAME_COUNT))-LOOKAHEAD+1)]
     self.frame_paths = [np.load(fp) for fp in self.framepath_paths]
     self.desires = [np.load(desires) for desires in self.desires_paths]
-    self.crossroads = [np.load(crds) for crds in self.crossroads_paths]
     for i in range(len(self.desires)):
       self.desires[i] = one_hot_encode(self.desires[i])
+    self.crossroads = [np.load(crds) for crds in self.crossroads_paths]
+    #self.crossroads = np.array([cr] for cr in self.crossroads)
     """
     # check length of images and paths
     print("images:")
@@ -131,9 +131,6 @@ class MultiVideoDataset(Dataset):
     return {"image": frame, "path": path, "desire": desire, "crossroad": crossroad}
 
 
-# TODO: add crossroads here
-# TODO: modify crossroad labeler to output to .npy
-# TODO: label videos with crossroads
 class Trainer:
   def __init__(self, device, model, train_loader, val_loader, model_path, writer_path=None, early_stop=False):
     self.early_stop = early_stop
@@ -156,7 +153,8 @@ class Trainer:
 
   def train(self, epochs=100, lr=1e-3):
     #loss_func = nn.MSELoss()
-    loss_func = MTPLoss(self.model.n_paths)
+    #loss_func = MTPLoss(self.model.n_paths)
+    loss_func = ComboLoss(2, self.model, self.device)
     optim = torch.optim.Adam(self.model.parameters(), lr=lr)
 
     def eval(val_losses, train=False):
@@ -165,12 +163,15 @@ class Trainer:
         try:
           self.model.eval()
           for i_batch, sample_batched in enumerate((t := tqdm(self.val_loader))):
-            X = torch.tensor(sample_batched['image']).float().to(self.device)
+            X = torch.tensor(sample_batched["image"]).float().to(self.device)
             desire = torch.tensor(sample_batched["desire"]).float().to(self.device)
-            Y = torch.tensor(sample_batched['path']).float().to(self.device)
+            #Y = torch.tensor(sample_batched["path"]).float().to(self.device)
+            Y_path = torch.tensor(sample_batched["path"]).float().to(self.device)
+            Y_cr = torch.tensor(sample_batched["crossroad"]).float().to(self.device)
 
-            out = self.model(X, desire)
-            loss = loss_func(out, Y)
+            out_path, out_cr = self.model(X, desire)
+            #loss = loss_func(out, Y)
+            loss = loss_func([out_path, out_cr], Y_path, Y_cr)
 
             if not train:
               self.writer.add_scalar('evaluation loss', loss.item(), i_batch)
@@ -193,15 +194,17 @@ class Trainer:
         epoch_vlosses = []
 
         for i_batch, sample_batched in enumerate((t := tqdm(self.train_loader))):
-          X = torch.tensor(sample_batched['image']).float().to(self.device)
+          X = torch.tensor(sample_batched["image"]).float().to(self.device)
           desire = torch.tensor(sample_batched["desire"]).float().to(self.device)
-          Y = torch.tensor(sample_batched['path']).float().to(self.device)
+          #Y = torch.tensor(sample_batched["path"]).float().to(self.device)
+          Y_path = torch.tensor(sample_batched["path"]).float().to(self.device)
+          Y_cr = torch.tensor(sample_batched["crossroad"]).float().to(self.device)
 
           optim.zero_grad()
-          out = self.model(X, desire)
-          #print("Model output: ", out.shape)
-          #print("Ground Truth: ", Y.shape)
-          loss = loss_func(out, Y)
+          # out = self.model(X, desire)
+          out_path, out_cr = self.model(X, desire)
+          #loss = loss_func(out, Y)
+          loss = loss_func([out_path, out_cr], Y_path, Y_cr)
 
           self.writer.add_scalar("running loss", loss.item(), i_batch)
           epoch_losses.append(loss.item())
@@ -273,7 +276,7 @@ if __name__ == "__main__":
   """
 
   # Test multi-video dataset
-  dataset = MultiVideoDataset("../data/sim/")
+  dataset = MultiVideoDataset("../data/sim/train/")
   print("Frames in dataset:", len(dataset))
   idxs = []
   for _ in range(10):
@@ -282,11 +285,12 @@ if __name__ == "__main__":
   for idx in idxs:
     print("[+] Frame:", idx)
     samp = dataset[idx]
-    img, path, desire = samp["image"], samp["path"], samp["desire"]
+    img, path, desire, crossroad = samp["image"], samp["path"], samp["desire"], samp["crossroad"]
     print(img.shape)
     print(path.shape)
     desire_idx = np.argmax(desire)
     print("Desire:", desire_idx, "=>", DESIRE[desire_idx])
+    print("Crossroad:", crossroad, "=>", CROSSROAD[crossroad])
 
     # plot path
     fig = go.FigureWidget()

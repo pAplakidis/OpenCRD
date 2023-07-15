@@ -35,7 +35,8 @@ if __name__ == "__main__":
   val_loader = DataLoader(val_set, batch_size=BS, shuffle=True, num_workers=0)
 
   # train model
-  model = PathPlanner()
+  #model = PathPlanner()
+  model = ComboModel()
   print(model)
   trainer = Trainer(device, model, train_loader, val_loader, model_path, writer_path)
   trainer.train(epochs=EPOCHS, lr=LR)

@@ -243,5 +243,4 @@ def one_hot_encode(arr):
 
 # ------------------------------------------------------------
 
-LABEL_DICT = {0: "no crossroad", 1: "crossroad"}  # NOTE: no need to change this for 2 classes (argmax still gets us the same results)
-
+CROSSROAD = {0: "no crossroad", 1: "crossroad"}
