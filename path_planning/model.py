@@ -116,7 +116,7 @@ class ComboModel(nn.Module):
     x = torch.cat((x, desire), 1)
     #print(x.shape)
     path = self.policy(x)
-    crossroad = self.cr_detector(x)
+    crossroad = torch.sigmoid(self.cr_detector(x))
     return path, crossroad
 
   def num_flat_features(self, x):
@@ -269,13 +269,15 @@ class ComboLoss(nn.Module):
     self.device = device
     self.log_vars = nn.Parameter(torch.zeros((task_num)))
 
-  # TODO: CUDA ERROR HERE (with loss)
-  def forward(self, preds, path, cr):
-    cr_loss = nn.BCELoss()
-    path_loss = MTPLoss(self.model.n_paths)
+  def forward(self, preds, ground_truths):
+    path_pred, cr_pred = preds
+    path_gt, cr_gt = ground_truths
 
-    loss0 = path_loss(preds[0], path)
-    loss1 = cr_loss(preds[1], cr)
+    path_loss = MTPLoss(self.model.n_paths)
+    cr_loss = nn.BCELoss()
+
+    loss0 = path_loss(path_pred, path_gt)
+    loss1 = cr_loss(cr_pred, cr_gt)
 
     # TODO: need better multitask loss (weighted sum maybe)
     precision0 = torch.exp(-self.log_vars[0])

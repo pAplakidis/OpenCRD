@@ -157,6 +157,7 @@ class Trainer:
     loss_func = ComboLoss(2, self.model, self.device)
     optim = torch.optim.Adam(self.model.parameters(), lr=lr)
 
+    # evaluate model
     def eval(val_losses, train=False):
       print("[+] Evaluating ...")
       with torch.no_grad():
@@ -171,7 +172,7 @@ class Trainer:
 
             out_path, out_cr = self.model(X, desire)
             #loss = loss_func(out, Y)
-            loss = loss_func([out_path, out_cr], Y_path, Y_cr)
+            loss = loss_func([out_path, out_cr], [Y_path, Y_cr])
 
             if not train:
               self.writer.add_scalar('evaluation loss', loss.item(), i_batch)
@@ -183,6 +184,7 @@ class Trainer:
       print("[+] Evaluation Done")
       return val_losses
 
+    # train model
     losses = []
     vlosses = []
     try:
@@ -204,7 +206,7 @@ class Trainer:
           # out = self.model(X, desire)
           out_path, out_cr = self.model(X, desire)
           #loss = loss_func(out, Y)
-          loss = loss_func([out_path, out_cr], Y_path, Y_cr)
+          loss = loss_func([out_path, out_cr], [Y_path, Y_cr])
 
           self.writer.add_scalar("running loss", loss.item(), i_batch)
           epoch_losses.append(loss.item())
