@@ -89,6 +89,7 @@ class PathPlanner(nn.Module):
       num_features *= s
     return num_features
 
+
 class ComboModel(nn.Module):
   def __init__(self, n_paths=3):
     super(ComboModel, self).__init__()
@@ -115,6 +116,52 @@ class ComboModel(nn.Module):
     x = x.view(-1, self.num_flat_features(x))
     x = torch.cat((x, desire), 1)
     #print(x.shape)
+    path = self.policy(x)
+    crossroad = torch.sigmoid(self.cr_detector(x))
+    return path, crossroad
+
+  def num_flat_features(self, x):
+    size = x.size()[1:] # all dimensions except the batch dimension
+    num_features = 1
+    for s in size:
+      num_features *= s
+    return num_features
+
+
+# Input: 2 consecutive frames
+# Output: trajectory and crossroad prediction
+class SuperComboModel(nn.Module):
+  def __init__(self, hidden_size=128, n_layers=1, n_paths=3):
+    super(ComboModel, self).__init__()
+    self.n_paths = n_paths
+    self.hidden_size = hidden_size  # output size of GRU unit
+    self.n_layers = n_layers        # number of layers in GRU unit
+    # effnet = efficientnet_b2(pretrained=True)
+
+    # like MuZero: vision->representation(h), state->dynamics(g), policy->prediction(f)
+    # self.vision = nn.Sequential(*(list(effnet.children())[:-1]))
+    self.vision = efficientnet_b2(pretrained=True)
+    self.state = nn.GRU(self.vision._fc.in_features, self.hidden_size, self.n_layers, batch_first=True)
+    self.policy = MTP(self.hidden_size, n_modes=self.n_paths)
+    self.cr_detector = nn.Sequential(
+      nn.Linear(1411, 1024),
+      nn.BatchNorm1d(1024),
+      nn.ReLU(),
+      nn.Linear(1024, 128),
+      nn.BatchNorm1d(128),
+      nn.ReLU(),
+      nn.Linear(128, 84),
+      nn.BatchNorm1d(84),
+      nn.ReLU(),
+      nn.Linear(84, 1)
+    )
+
+  def forward(self, in_frames, desire):
+    x = torch.cat(in_frames, dim=1)
+    x = self.vision(x)
+    x = torch.cat((x, desire), 1)
+    #print(x.shape)
+    x = self.state(x)
     path = self.policy(x)
     crossroad = torch.sigmoid(self.cr_detector(x))
     return path, crossroad
