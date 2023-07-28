@@ -17,7 +17,7 @@ print("[+] Tensorboard Writer path:", writer_path)
 
 BS = 12
 EPOCHS = 100
-LR = 1e-3
+LR = 1e-2
 
 # TODO: the whole training stack is bottlenecked by the fact that we are loading from the hard-drive instead of RAM
 # so the GPU is not utilized completely
@@ -37,7 +37,7 @@ if __name__ == "__main__":
   # train model
   #model = PathPlanner()
   #model = ComboModel()
-  model = SuperComboModel()
+  model = SuperComboModel(n_layers=2)
   print(model)
   trainer = Trainer(device, model, train_loader, val_loader, model_path, writer_path)
   trainer.train(epochs=EPOCHS, lr=LR)

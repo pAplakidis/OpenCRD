@@ -182,13 +182,17 @@ class Trainer:
         try:
           self.model.eval()
           for i_batch, sample_batched in enumerate((t := tqdm(self.val_loader))):
-            X = torch.tensor(sample_batched["image"]).float().to(self.device)
+            # X = torch.tensor(sample_batched["image"]).float().to(self.device)
+            IN_FRAMES = sample_batched["images"]
+            for i in range(2):
+              IN_FRAMES[i] = torch.tensor(IN_FRAMES[i]).float().to(self.device)
             desire = torch.tensor(sample_batched["desire"]).float().to(self.device)
             #Y = torch.tensor(sample_batched["path"]).float().to(self.device)
             Y_path = torch.tensor(sample_batched["path"]).float().to(self.device)
             Y_cr = torch.tensor(sample_batched["crossroad"]).float().to(self.device)
 
-            out_path, out_cr = self.model(X, desire)
+            # out_path, out_cr = self.model(X, desire)
+            out_path, out_cr = self.model(IN_FRAMES, desire)
             #loss = loss_func(out, Y)
             loss = loss_func([out_path, out_cr], [Y_path, Y_cr])
 
