@@ -36,7 +36,8 @@ if __name__ == "__main__":
 
   # train model
   #model = PathPlanner()
-  model = ComboModel()
+  #model = ComboModel()
+  model = SuperComboModel()
   print(model)
   trainer = Trainer(device, model, train_loader, val_loader, model_path, writer_path)
   trainer.train(epochs=EPOCHS, lr=LR)

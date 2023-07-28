@@ -131,39 +131,38 @@ class ComboModel(nn.Module):
 # Input: 2 consecutive frames
 # Output: trajectory and crossroad prediction
 class SuperComboModel(nn.Module):
-  def __init__(self, hidden_size=128, n_layers=1, n_paths=3):
-    super(ComboModel, self).__init__()
+  def __init__(self, input_size=6, hidden_size=128, n_layers=1, n_paths=3):
+    super(SuperComboModel, self).__init__()
     self.n_paths = n_paths
+    self.input_size = input_size    # input channels (2 bgr frames -> 2*3 channels)
     self.hidden_size = hidden_size  # output size of GRU unit
     self.n_layers = n_layers        # number of layers in GRU unit
-    # effnet = efficientnet_b2(pretrained=True)
+    effnet = efficientnet_b2(pretrained=True)
+    effnet.features[0][0] = nn.Conv2d(self.input_size, 32, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), bias=False)
 
     # like MuZero: vision->representation(h), state->dynamics(g), policy->prediction(f)
-    # self.vision = nn.Sequential(*(list(effnet.children())[:-1]))
-    self.vision = efficientnet_b2(pretrained=True)
-    self.state = nn.GRU(self.vision._fc.in_features, self.hidden_size, self.n_layers, batch_first=True)
+    self.vision = nn.Sequential(*(list(effnet.children())[:-1]))
+    # self.vision = efficientnet_b2(pretrained=True)
+    # self.state = nn.GRU(self.vision._fc.in_features, self.hidden_size, self.n_layers, batch_first=True)
+    self.state = nn.GRU(1411, self.hidden_size, self.n_layers, batch_first=True)
     self.policy = MTP(self.hidden_size, n_modes=self.n_paths)
     self.cr_detector = nn.Sequential(
-      nn.Linear(1411, 1024),
-      nn.BatchNorm1d(1024),
+      nn.Linear(hidden_size, 64),
+      nn.BatchNorm1d(64),
       nn.ReLU(),
-      nn.Linear(1024, 128),
-      nn.BatchNorm1d(128),
-      nn.ReLU(),
-      nn.Linear(128, 84),
-      nn.BatchNorm1d(84),
-      nn.ReLU(),
-      nn.Linear(84, 1)
+      nn.Linear(64, 1)
     )
 
   def forward(self, in_frames, desire):
     x = torch.cat(in_frames, dim=1)
     x = self.vision(x)
-    x = torch.cat((x, desire), 1)
-    #print(x.shape)
-    x = self.state(x)
-    path = self.policy(x)
-    crossroad = torch.sigmoid(self.cr_detector(x))
+    x = x.view(-1, self.num_flat_features(x))
+    x = torch.cat((x, desire), dim=1)
+    # print(x.shape)
+    out_GRU, pre_GRU = self.state(x)
+    # x = out_GRU[:, -1, :] # get the output of the last time step
+    path = self.policy(out_GRU)
+    crossroad = torch.sigmoid(self.cr_detector(out_GRU))
     return path, crossroad
 
   def num_flat_features(self, x):

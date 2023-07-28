@@ -54,7 +54,7 @@ class PathPlannerDataset(Dataset):
 
     def __getitem__(self, idx):
       #self.cap.set(cv2.CAP_PROP_POS_FRAMES, idx-1)
-      self.cap.set(1, idx)
+      self.cap.set(1, idx+i)
       ret, frame = self.cap.read()
       frame = cv2.resize(frame, (W,H))
       frame = np.moveaxis(frame, -1, 0)
@@ -74,6 +74,8 @@ class MultiVideoDataset(Dataset):
     self.framepath_paths = []
     self.desires_paths = []
     self.crossroads_paths = []
+    self.input_frames = [np.zeros((3, W, H)) for _ in range(2)] # 2 consecutive frames for GRU
+
     print("Data from:")
     for dir in sorted(os.listdir(base_dir)):
       prefix = self.base_dir+dir+"/"
@@ -112,13 +114,28 @@ class MultiVideoDataset(Dataset):
     return len(self.images)
 
   def __getitem__(self, idx):
+    # get previous frame
+    if idx != 0:
+      capid, framenum = self.images[idx-1]
+      cap = self.caps[capid]
+      cap.set(cv2.CAP_PROP_POS_FRAMES, framenum)
+      ret, frame1 = cap.read()
+
+      frame1 = cv2.resize(frame1, (W,H))
+      frame1 = np.moveaxis(frame1, -1, 0)
+      self.input_frames[0] = frame1
+
+    # get current frame
     capid, framenum = self.images[idx]
     cap = self.caps[capid]
     cap.set(cv2.CAP_PROP_POS_FRAMES, framenum)
-    ret, frame = cap.read()
+    ret, frame2 = cap.read()
 
-    frame = cv2.resize(frame, (W,H))
-    frame = np.moveaxis(frame, -1, 0)
+    frame2 = cv2.resize(frame2, (W,H))
+    frame2 = np.moveaxis(frame2, -1, 0)
+    self.input_frames[1] = frame2
+
+
     path = self.frame_paths[capid][framenum]
     if np.isnan(path).any():
       path = np.zeros_like(path)
@@ -128,7 +145,8 @@ class MultiVideoDataset(Dataset):
     #img_tensor = torch.from_numpy(frame).float()
     #path_tensor = torch.from_numpy(path).float()
     #return {"image": img_tensor, "path": path_tensor}
-    return {"image": frame, "path": path, "desire": desire, "crossroad": crossroad}
+    # return {"image": frame, "path": path, "desire": desire, "crossroad": crossroad}
+    return {"images": self.input_frames, "path": path, "desire": desire, "crossroad": crossroad}
 
 
 class Trainer:
@@ -196,7 +214,10 @@ class Trainer:
         epoch_vlosses = []
 
         for i_batch, sample_batched in enumerate((t := tqdm(self.train_loader))):
-          X = torch.tensor(sample_batched["image"]).float().to(self.device)
+          # X = torch.tensor(sample_batched["image"]).float().to(self.device)
+          IN_FRAMES = sample_batched["images"]
+          for i in range(2):
+            IN_FRAMES[i] = torch.tensor(IN_FRAMES[i]).float().to(self.device)
           desire = torch.tensor(sample_batched["desire"]).float().to(self.device)
           #Y = torch.tensor(sample_batched["path"]).float().to(self.device)
           Y_path = torch.tensor(sample_batched["path"]).float().to(self.device)
@@ -204,7 +225,8 @@ class Trainer:
 
           optim.zero_grad()
           # out = self.model(X, desire)
-          out_path, out_cr = self.model(X, desire)
+          # out_path, out_cr = self.model(X, desire)
+          out_path, out_cr = self.model(IN_FRAMES, desire)
           #loss = loss_func(out, Y)
           loss = loss_func([out_path, out_cr], [Y_path, Y_cr])
 
